@@ -1,5 +1,6 @@
 import { GameState, PlayerGrade } from '../../systems/GameState';
 import { AudioSystem } from '../../systems/AudioSystem';
+import { Icons, icon } from '../Icons';
 
 export class RegistrationModal {
   private container: HTMLElement;
@@ -20,38 +21,42 @@ export class RegistrationModal {
   private render(): void {
     this.container.innerHTML = `
       <div class="modal-box">
-        <h1 class="start-title">👑 MAHKOTA BINTANG 🌟</h1>
-        <p class="start-subtitle">Petualangan RPG Bahasa Inggris Kelas 3 & 4 SD</p>
-        
-        <div style="background: rgba(30, 41, 59, 0.6); padding: 12px; border-radius: 10px; border-left: 4px solid #f59e0b; font-size: 0.9rem; line-height: 1.5; color: #cbd5e1;">
-          <strong>Misi Kerajaan:</strong> Prajurit terpilih! Mahkota Bintang milik Putri Cahaya hilang dicuri monster di Hutan Rahasia. Jelajahi kerajaan, jawab pertanyaan bahasa Inggris dari warga, temukan kunci, dan kembalikan mahkota sebelum Festival dimulai!
+        <h1 class="start-title">MAHKOTA BINTANG</h1>
+        <p class="start-subtitle">Petualangan RPG Bahasa Inggris Kelas 3 &amp; 4 SD</p>
+
+        <div class="mission-brief">
+          <strong>${icon(Icons.scroll(14, 14), '#f5a623')} Misi Kerajaan:</strong> Prajurit terpilih! Mahkota Bintang milik Putri Cahaya hilang dicuri monster di Hutan Rahasia. Jelajahi kerajaan, jawab pertanyaan bahasa Inggris dari warga, temukan kunci, dan kembalikan mahkota sebelum Festival dimulai!
         </div>
 
         <form id="registration-form" class="form-group" onsubmit="return false;">
-          <label class="form-label" for="player-name-input">Nama Prajurit:</label>
-          <input 
-            type="text" 
-            id="player-name-input" 
-            class="form-input" 
-            placeholder="Ketik nama kamu di sini..." 
-            maxlength="20" 
+          <label class="form-label" for="player-name-input">
+            ${icon(Icons.user(14, 14), '#94a3b8')} Nama Prajurit:
+          </label>
+          <input
+            type="text"
+            id="player-name-input"
+            class="form-input"
+            placeholder="Ketik nama kamu di sini..."
+            maxlength="20"
             autocomplete="off"
             required
           />
-          <div id="name-error" class="error-text">⚠️ Masukkan nama minimal 2 karakter!</div>
+          <div id="name-error" class="error-text">${icon(Icons.alertTriangle(14, 14), '#f87171')} Masukkan nama minimal 2 karakter!</div>
 
-          <label class="form-label" style="margin-top: 10px;">Pilih Tingkat Kelas:</label>
+          <label class="form-label" style="margin-top: 8px;">
+            ${icon(Icons.bookOpen(14, 14), '#94a3b8')} Pilih Tingkat Kelas:
+          </label>
           <div class="grade-options">
             <button type="button" class="grade-btn selected" data-grade="3" id="grade-btn-3">
-              🎒 Kelas 3 SD
+              ${icon(Icons.package(16, 16))} Kelas 3 SD
             </button>
             <button type="button" class="grade-btn" data-grade="4" id="grade-btn-4">
-              📘 Kelas 4 SD
+              ${icon(Icons.bookOpen(16, 16))} Kelas 4 SD
             </button>
           </div>
 
-          <button type="submit" id="btn-start-game" class="btn-primary" style="margin-top: 16px;">
-            ⚔️ Mulai Petualangan!
+          <button type="submit" id="btn-start-game" class="btn-primary" style="margin-top: 14px;">
+            ${icon(Icons.sword(18, 18))} Mulai Petualangan!
           </button>
         </form>
       </div>
@@ -83,7 +88,7 @@ export class RegistrationModal {
       e.preventDefault();
       const name = nameInput.value.trim();
       if (name.length < 2) {
-        nameError.style.display = 'block';
+        nameError.style.display = 'flex';
         nameInput.focus();
         return;
       }
@@ -95,7 +100,6 @@ export class RegistrationModal {
       this.onStartCallback();
     });
 
-    // Auto-focus input
     setTimeout(() => nameInput.focus(), 200);
   }
 

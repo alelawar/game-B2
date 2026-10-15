@@ -1,4 +1,5 @@
 import { AudioSystem } from '../../systems/AudioSystem';
+import { Icons, icon } from '../Icons';
 
 export interface DialogData {
   title: string;
@@ -27,18 +28,18 @@ export class DialogModal {
     this.container.innerHTML = `
       <div class="modal-box">
         <div class="dialog-header">
-          <div class="dialog-avatar" id="dialog-avatar">👑</div>
+          <div class="dialog-avatar" id="dialog-avatar"></div>
           <div>
-            <h2 class="dialog-name" id="dialog-title">Putri Cahaya</h2>
-            <div style="font-size: 0.8rem; color: #94a3b8;">Kerajaan Bintang</div>
+            <h2 class="dialog-name" id="dialog-title">NPC</h2>
+            <div class="dialog-subtitle">Kerajaan Bintang</div>
           </div>
         </div>
         <div class="dialog-content" id="dialog-message">
-          Prajurit! Mahkota Bintang hilang!
+          ...
         </div>
         <div class="dialog-actions">
-          <button class="btn-primary" id="dialog-btn-continue" style="padding: 10px 24px; font-size: 1rem;">
-            Lanjutkan ➡️
+          <button class="btn-primary" id="dialog-btn-continue" style="padding: 9px 18px; font-size: 0.85rem;">
+            ${icon(Icons.arrowRight(14, 14))} Lanjutkan
           </button>
         </div>
       </div>
@@ -74,10 +75,12 @@ export class DialogModal {
     const msgEl = this.container.querySelector('#dialog-message') as HTMLElement;
     const btn = this.container.querySelector('#dialog-btn-continue') as HTMLButtonElement;
 
-    if (avatarEl) avatarEl.textContent = data.avatarIcon || '💬';
+    if (avatarEl) {
+      avatarEl.innerHTML = icon(Icons.messageCircle(28, 28), '#f5a623');
+    }
     if (titleEl) titleEl.textContent = data.title;
     if (msgEl) msgEl.textContent = data.message;
-    if (btn) btn.textContent = data.buttonText || 'Lanjutkan ➡️';
+    if (btn) btn.innerHTML = `${icon(Icons.arrowRight(14, 14))} ${data.buttonText || 'Lanjutkan'}`;
 
     this.container.classList.add('active');
     AudioSystem.playInteract();

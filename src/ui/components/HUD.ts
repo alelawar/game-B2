@@ -1,24 +1,47 @@
-import { GameState } from '../../systems/GameState';
+import { GameState, QuestStage } from '../../systems/GameState';
 import { AudioSystem } from '../../systems/AudioSystem';
+import { Icons, icon } from '../Icons';
+import { AREA_MAPS, AreaKey } from '../../data/maps';
 
 export class HUD {
   private container: HTMLElement;
   private unsubscribe: () => void;
   private onRestartCallback: () => void;
   private interactionBubble: HTMLElement;
+  private questLogPanel: HTMLElement;
+  private minimapContainer: HTMLElement;
+  private minimapCanvas: HTMLCanvasElement;
+  private minimapCtx: CanvasRenderingContext2D;
+  private questLogOpen: boolean = false;
 
   constructor(onRestartCallback: () => void) {
     this.onRestartCallback = onRestartCallback;
+
     this.container = document.createElement('div');
     this.container.id = 'game-hud';
 
     this.interactionBubble = document.createElement('div');
     this.interactionBubble.id = 'interaction-bubble';
-    this.interactionBubble.innerText = 'Tekan [E]';
+
+    this.questLogPanel = document.createElement('div');
+    this.questLogPanel.id = 'quest-log-panel';
+
+    this.minimapContainer = document.createElement('div');
+    this.minimapContainer.id = 'minimap-container';
+
+    this.minimapCanvas = document.createElement('canvas');
+    this.minimapCanvas.width = 120;
+    this.minimapCanvas.height = 100;
+    this.minimapCtx = this.minimapCanvas.getContext('2d')!;
+    this.minimapCtx.imageSmoothingEnabled = false;
 
     this.render();
     document.body.appendChild(this.container);
     document.body.appendChild(this.interactionBubble);
+    document.body.appendChild(this.questLogPanel);
+    document.body.appendChild(this.minimapContainer);
+
+    this.minimapContainer.appendChild(this.minimapCanvas);
 
     this.bindEvents();
     this.unsubscribe = GameState.subscribe(() => this.update());
@@ -29,35 +52,38 @@ export class HUD {
     this.container.innerHTML = `
       <div class="hud-group">
         <div class="hud-card hud-player-badge" id="hud-player-info">
-          🛡️ <span id="hud-player-name">Prajurit</span> (Kls <span id="hud-player-grade">3</span>)
+          ${icon(Icons.shield(14, 14))}
+          <span id="hud-player-name">Prajurit</span>
+          <span style="opacity:0.6;">Kls</span>
+          <span id="hud-player-grade">3</span>
         </div>
         <div class="hud-card">
-          <div class="hud-hearts" id="hud-hearts">
-            <!-- Hearts will be generated here -->
-          </div>
+          <div class="hud-hearts" id="hud-hearts"></div>
         </div>
       </div>
 
-      <div class="hud-objective-banner" id="hud-objective">
-        ${GameState.getQuestObjectiveText()}
-      </div>
+      <div class="hud-objective-banner" id="hud-objective"></div>
 
       <div class="hud-group">
         <div class="hud-card hud-score-card">
-          ⭐ Skor: <span id="hud-score-val">0</span> / 100
+          ${icon(Icons.star(14, 14), '#fef08a')}
+          <span id="hud-score-val">0</span><span style="opacity:0.6;">/100</span>
         </div>
-        <button class="hud-btn" id="hud-btn-sound" title="Toggle Suara">
-          🔊
+        <button class="hud-btn" id="hud-btn-quest" title="Catatan Misi">
+          ${icon(Icons.scroll(16, 16))}
         </button>
-        <button class="hud-btn" id="hud-btn-restart" title="Ulang Permainan">
-          🔄
+        <button class="hud-btn" id="hud-btn-sound" title="Suara">
+          ${Icons.volume(16, 16)}
+        </button>
+        <button class="hud-btn" id="hud-btn-restart" title="Ulang">
+          ${Icons.refresh(16, 16)}
         </button>
       </div>
 
       <div id="controls-hint">
-        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / Panah: Gerak &nbsp;|&nbsp; 
-        <kbd>E</kbd>: Interaksi &nbsp;|&nbsp; 
-        <kbd>Spasi</kbd>: Serang
+        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gerak
+        <kbd>E</kbd> Interaksi
+        <kbd>Spasi</kbd> Serang
       </div>
     `;
   }
@@ -65,16 +91,23 @@ export class HUD {
   private bindEvents(): void {
     const soundBtn = this.container.querySelector('#hud-btn-sound') as HTMLButtonElement;
     const restartBtn = this.container.querySelector('#hud-btn-restart') as HTMLButtonElement;
+    const questBtn = this.container.querySelector('#hud-btn-quest') as HTMLButtonElement;
 
     soundBtn.addEventListener('click', () => {
       const isMuted = AudioSystem.toggleMute();
-      soundBtn.innerText = isMuted ? '🔇' : '🔊';
+      soundBtn.innerHTML = isMuted ? Icons.volumeOff(16, 16) : Icons.volume(16, 16);
     });
 
     restartBtn.addEventListener('click', () => {
       if (confirm('Mulai ulang petualangan dari awal? Semua skor dan progres akan direset.')) {
         this.onRestartCallback();
       }
+    });
+
+    questBtn.addEventListener('click', () => {
+      this.questLogOpen = !this.questLogOpen;
+      this.questLogPanel.classList.toggle('open', this.questLogOpen);
+      this.renderQuestLog();
     });
   }
 
@@ -88,20 +121,159 @@ export class HUD {
     if (nameEl) nameEl.textContent = GameState.playerName || 'Prajurit';
     if (gradeEl) gradeEl.textContent = GameState.playerGrade;
     if (scoreEl) scoreEl.textContent = String(GameState.score);
-    if (objEl) objEl.textContent = GameState.getQuestObjectiveText();
+    if (objEl) objEl.innerHTML = `${icon(Icons.compass(12, 12), '#38bdf8')} ${this.getObjectiveText()}`;
 
     if (heartsEl) {
-      let heartsHtml = '';
+      let html = '';
       for (let i = 0; i < GameState.playerMaxHealth; i++) {
         const isFull = i < GameState.playerHealth;
-        heartsHtml += `<span class="heart-icon ${isFull ? 'heart-full' : 'heart-empty'}">❤️</span>`;
+        html += `<span class="heart-icon ${isFull ? 'heart-full' : 'heart-empty'}">${isFull ? Icons.heartFull(16, 16) : Icons.heartEmpty(16, 16)}</span>`;
       }
-      heartsEl.innerHTML = heartsHtml;
+      heartsEl.innerHTML = html;
+    }
+
+    if (this.questLogOpen) {
+      this.renderQuestLog();
     }
   }
 
+  private getObjectiveText(): string {
+    switch (GameState.questStage) {
+      case QuestStage.TALK_TO_PRINCESS:
+        return 'Temui Putri Cahaya di Alun-Alun Istana';
+      case QuestStage.INVESTIGATE_AREAS:
+        return !GameState.hasForestKey
+          ? 'Cari petunjuk di Taman (Timur) dan Dapur (Utara)'
+          : 'Kunci ditemukan! Temui Penjaga Gerbang (Selatan)';
+      case QuestStage.GATE_CHALLENGE:
+        return 'Jawab pertanyaan Penjaga Gerbang Hutan';
+      case QuestStage.FOREST_EXPLORATION:
+        return 'Jelajahi Hutan, kalahkan monster, baca Prasasti';
+      case QuestStage.RETRIEVE_CROWN:
+        return 'Ambil Mahkota Bintang di altar hutan!';
+      case QuestStage.RETURN_TO_PRINCESS:
+        return 'Kembalikan Mahkota ke Putri Cahaya!';
+      case QuestStage.COMPLETED:
+        return 'Misi Selesai! Kerajaan Terselamatkan!';
+    }
+  }
+
+  private renderQuestLog(): void {
+    const stage = GameState.questStage;
+
+    const steps = [
+      { label: 'Temui Putri Cahaya', stage: QuestStage.TALK_TO_PRINCESS },
+      { label: 'Cari petunjuk di Taman & Dapur', stage: QuestStage.INVESTIGATE_AREAS },
+      { label: 'Dapatkan Kunci Hutan Rahasia', stage: -1, done: GameState.hasForestKey },
+      { label: 'Jawab tantangan Penjaga Gerbang', stage: QuestStage.GATE_CHALLENGE },
+      { label: 'Kalahkan monster di Hutan', stage: QuestStage.FOREST_EXPLORATION },
+      { label: 'Baca Prasasti Kuno', stage: -2, done: GameState.isQuestionAnswered('q_present_continuous') },
+      { label: 'Ambil Mahkota Bintang', stage: QuestStage.RETRIEVE_CROWN },
+      { label: 'Kembalikan ke Putri Cahaya', stage: QuestStage.RETURN_TO_PRINCESS },
+    ];
+
+    let bodyHtml = '';
+    steps.forEach(step => {
+      let cls = '';
+      if (step.stage === -1) {
+        cls = step.done ? 'done' : (stage >= QuestStage.INVESTIGATE_AREAS ? 'active' : '');
+      } else if (step.stage === -2) {
+        cls = step.done ? 'done' : (stage >= QuestStage.FOREST_EXPLORATION ? 'active' : '');
+      } else if (stage > step.stage) {
+        cls = 'done';
+      } else if (stage === step.stage) {
+        cls = 'active';
+      }
+
+      const markerInner = cls === 'done'
+        ? Icons.checkCircle(10, 10)
+        : cls === 'active' ? `<span style="color:#38bdf8;">${Icons.arrowRight(10, 10)}</span>` : '';
+
+      bodyHtml += `
+        <div class="quest-step ${cls}">
+          <div class="quest-step-marker">${markerInner}</div>
+          <span>${step.label}</span>
+        </div>
+      `;
+    });
+
+    this.questLogPanel.innerHTML = `
+      <div class="quest-log-header">
+        ${icon(Icons.scroll(12, 12), '#fef08a')} CATATAN MISI
+      </div>
+      <div class="quest-log-body">
+        ${bodyHtml}
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e293b; font-size: 0.7rem; color: #64748b;">
+          Skor: ${GameState.score}/100 &middot; Dijawab: ${GameState.getAnsweredCount()}/10
+        </div>
+      </div>
+    `;
+  }
+
+  public updateMinimap(currentArea: AreaKey, playerTileX: number, playerTileY: number): void {
+    const area = AREA_MAPS[currentArea];
+    const ctx = this.minimapCtx;
+    const cw = this.minimapCanvas.width;
+    const ch = this.minimapCanvas.height;
+    const tw = cw / area.widthInTiles;
+    const th = ch / area.heightInTiles;
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    // Draw tiles
+    for (let y = 0; y < area.layout.length; y++) {
+      for (let x = 0; x < area.layout[y].length; x++) {
+        const c = area.layout[y][x];
+        if (c === 'W') ctx.fillStyle = '#334155';
+        else if (c === 'T') ctx.fillStyle = '#15803d';
+        else if (c === 'F') ctx.fillStyle = '#78350f';
+        else if (c === 'P') ctx.fillStyle = '#92400e';
+        else if (currentArea === 'FOREST') ctx.fillStyle = '#0f3d2a';
+        else if (currentArea === 'CASTLE') ctx.fillStyle = '#374151';
+        else ctx.fillStyle = '#166534';
+
+        ctx.fillRect(x * tw, y * th, tw, th);
+      }
+    }
+
+    // Draw NPCs
+    area.npcs.forEach(npc => {
+      const isQuestTarget = this.isNPCQuestTarget(npc.id);
+      ctx.fillStyle = isQuestTarget ? '#f59e0b' : '#60a5fa';
+      ctx.fillRect(npc.x * tw - 1, npc.y * th - 1, tw + 2, th + 2);
+    });
+
+    // Draw portals
+    area.portals.forEach(p => {
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(p.x * tw, p.y * th, tw, th);
+    });
+
+    // Draw player
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(playerTileX * tw - 1, playerTileY * th - 1, tw + 3, th + 3);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(playerTileX * tw - 1, playerTileY * th - 1, tw + 3, th + 3);
+
+    // Area label
+    const labelEl = this.minimapContainer.querySelector('.minimap-label');
+    if (labelEl) labelEl.remove();
+    const label = document.createElement('div');
+    label.className = 'minimap-label';
+    label.textContent = area.name.split('(')[0].trim();
+    this.minimapContainer.appendChild(label);
+  }
+
+  private isNPCQuestTarget(npcId: string): boolean {
+    const stage = GameState.questStage;
+    if (npcId === 'npc_princess' && (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS)) return true;
+    if (npcId === 'npc_gatekeeper' && GameState.hasForestKey && stage <= QuestStage.GATE_CHALLENGE) return true;
+    return false;
+  }
+
   public showInteractionPrompt(x: number, y: number, text: string = 'Tekan [E]'): void {
-    this.interactionBubble.innerText = text;
+    this.interactionBubble.innerHTML = `${icon(Icons.doorOpen(12, 12))} ${text}`;
     this.interactionBubble.style.left = `${x}px`;
     this.interactionBubble.style.top = `${y}px`;
     this.interactionBubble.style.display = 'block';
@@ -115,5 +287,7 @@ export class HUD {
     this.unsubscribe();
     this.container.remove();
     this.interactionBubble.remove();
+    this.questLogPanel.remove();
+    this.minimapContainer.remove();
   }
 }

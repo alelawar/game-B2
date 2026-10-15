@@ -1,6 +1,7 @@
 import { QuestionItem } from '../../data/questions';
 import { GameState } from '../../systems/GameState';
 import { AudioSystem } from '../../systems/AudioSystem';
+import { Icons, icon } from '../Icons';
 
 export class QuizModal {
   private container: HTMLElement;
@@ -23,31 +24,27 @@ export class QuizModal {
     this.container.innerHTML = `
       <div class="modal-box">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="quiz-topic-tag" id="quiz-topic">Topic: Vocabulary</span>
-          <span style="font-size: 0.85rem; font-weight: 700; color: #f59e0b;" id="quiz-context-title">
-            Kuis Bahasa Inggris
+          <span class="quiz-topic-tag" id="quiz-topic">Topik</span>
+          <span style="font-family: var(--font-pixel); font-size: 0.4rem; color: #f5a623;" id="quiz-context-title">
+            Kuis
           </span>
         </div>
 
         <div class="quiz-question-text" id="quiz-question">
-          Question goes here?
+          Question?
         </div>
 
-        <div class="quiz-options" id="quiz-options-list">
-          <!-- 3 options rendered here -->
-        </div>
+        <div class="quiz-options" id="quiz-options-list"></div>
 
         <div class="quiz-feedback" id="quiz-feedback">
-          <div class="quiz-feedback-title" id="feedback-title">🎉 Benar! (+10 Poin)</div>
-          <div class="quiz-feedback-text" id="feedback-explanation">Penjelasan jawaban di sini.</div>
-          <div class="quiz-feedback-text" id="feedback-clue" style="color: #38bdf8; font-weight: 700; margin-top: 4px;">
-            Petunjuk: ...
-          </div>
+          <div class="quiz-feedback-title" id="feedback-title"></div>
+          <div class="quiz-feedback-text" id="feedback-explanation"></div>
+          <div class="quiz-feedback-text" id="feedback-clue" style="color: #38bdf8; font-weight: 700; margin-top: 3px;"></div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-          <button class="btn-primary" id="quiz-btn-continue" style="display: none; padding: 10px 24px;">
-            Lanjutkan Petualangan ➡️
+        <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+          <button class="btn-primary" id="quiz-btn-continue" style="display: none; padding: 9px 18px; font-size: 0.85rem;">
+            ${icon(Icons.arrowRight(14, 14))} Lanjutkan
           </button>
         </div>
       </div>
@@ -58,29 +55,21 @@ export class QuizModal {
     const continueBtn = this.container.querySelector('#quiz-btn-continue') as HTMLButtonElement;
     continueBtn.addEventListener('click', () => {
       this.close();
-      if (this.onFinishCallback) {
-        this.onFinishCallback();
-      }
+      if (this.onFinishCallback) this.onFinishCallback();
     });
 
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen) return;
 
       if (!this.answeredCurrent) {
-        if (e.key === '1' || e.key === 'a' || e.key === 'A') {
-          this.handleOptionSelect(0);
-        } else if (e.key === '2' || e.key === 'b' || e.key === 'B') {
-          this.handleOptionSelect(1);
-        } else if (e.key === '3' || e.key === 'c' || e.key === 'C') {
-          this.handleOptionSelect(2);
-        }
+        if (e.key === '1' || e.key === 'a' || e.key === 'A') this.handleOptionSelect(0);
+        else if (e.key === '2' || e.key === 'b' || e.key === 'B') this.handleOptionSelect(1);
+        else if (e.key === '3' || e.key === 'c' || e.key === 'C') this.handleOptionSelect(2);
       } else {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'e' || e.key === 'E') {
           e.preventDefault();
           this.close();
-          if (this.onFinishCallback) {
-            this.onFinishCallback();
-          }
+          if (this.onFinishCallback) this.onFinishCallback();
         }
       }
     });
@@ -99,14 +88,13 @@ export class QuizModal {
     const feedbackEl = this.container.querySelector('#quiz-feedback') as HTMLElement;
     const continueBtn = this.container.querySelector('#quiz-btn-continue') as HTMLButtonElement;
 
-    topicEl.textContent = `Topik: ${question.topic}`;
+    topicEl.textContent = question.topic;
     contextEl.textContent = question.contextTitle;
     questionEl.textContent = question.question;
 
     feedbackEl.classList.remove('show');
     continueBtn.style.display = 'none';
 
-    // Check if this question was already answered before
     const isAlreadyAnswered = GameState.isQuestionAnswered(question.id);
 
     optionsContainer.innerHTML = '';
@@ -122,9 +110,7 @@ export class QuizModal {
 
       if (isAlreadyAnswered) {
         btn.disabled = true;
-        if (index === question.correctIndex) {
-          btn.classList.add('correct');
-        }
+        if (index === question.correctIndex) btn.classList.add('correct');
       } else {
         btn.addEventListener('click', () => this.handleOptionSelect(index));
       }
@@ -135,7 +121,7 @@ export class QuizModal {
     if (isAlreadyAnswered) {
       this.answeredCurrent = true;
       this.showFeedbackUI(true, true);
-      continueBtn.style.display = 'inline-block';
+      continueBtn.style.display = 'inline-flex';
     }
 
     this.container.classList.add('active');
@@ -158,16 +144,11 @@ export class QuizModal {
       }
     });
 
-    if (isCorrect) {
-      AudioSystem.playCorrect();
-    } else {
-      AudioSystem.playIncorrect();
-    }
-
+    isCorrect ? AudioSystem.playCorrect() : AudioSystem.playIncorrect();
     this.showFeedbackUI(isCorrect, false);
 
     const continueBtn = this.container.querySelector('#quiz-btn-continue') as HTMLButtonElement;
-    continueBtn.style.display = 'inline-block';
+    continueBtn.style.display = 'inline-flex';
     continueBtn.focus();
   }
 
@@ -184,19 +165,19 @@ export class QuizModal {
     if (isPreviouslyAnswered) {
       feedbackEl.style.borderLeftColor = '#3b82f6';
       titleEl.style.color = '#60a5fa';
-      titleEl.textContent = 'ℹ️ Pertanyaan ini sudah pernah dijawab sebelumnya!';
+      titleEl.innerHTML = `${icon(Icons.info(16, 16), '#60a5fa')} Pertanyaan ini sudah pernah dijawab sebelumnya!`;
     } else if (isCorrect) {
-      feedbackEl.style.borderLeftColor = '#10b981';
-      titleEl.style.color = '#34d399';
-      titleEl.textContent = '🎉 Hebat Sekali! Jawabanmu Benar! (+10 Poin)';
+      feedbackEl.style.borderLeftColor = '#22c55e';
+      titleEl.style.color = '#22c55e';
+      titleEl.innerHTML = `${icon(Icons.checkCircle(16, 16), '#22c55e')} Hebat Sekali! Jawaban Benar! (+10 Poin)`;
     } else {
       feedbackEl.style.borderLeftColor = '#ef4444';
       titleEl.style.color = '#f87171';
-      titleEl.textContent = '💡 Belum Tepat! (0 Poin)';
+      titleEl.innerHTML = `${icon(Icons.lightbulb(16, 16), '#f87171')} Belum Tepat! (0 Poin)`;
     }
 
     expEl.textContent = this.currentQuestion.explanation;
-    clueEl.textContent = this.currentQuestion.clueText;
+    clueEl.innerHTML = `${icon(Icons.compass(12, 12), '#38bdf8')} ${this.currentQuestion.clueText}`;
   }
 
   public close(): void {
