@@ -155,7 +155,18 @@ export class WorldScene extends Phaser.Scene {
         const px = x * 32 + 16;
         const py = y * 32 + 16;
 
-        const groundKey = char === 'P' ? 'tile_path' : areaData.defaultTile;
+        // If this tile is part of any portal doorway, give it clean stone path
+        let isPortalTile = false;
+        for (const p of areaData.portals) {
+          const pw = p.width ?? 2;
+          const ph = p.height ?? 2;
+          if (x >= p.x && x < p.x + pw && y >= p.y && y < p.y + ph) {
+            isPortalTile = true;
+            break;
+          }
+        }
+
+        const groundKey = (char === 'P' || isPortalTile) ? 'tile_path' : areaData.defaultTile;
         this.add.image(px, py, groundKey).setDepth(1);
 
         if (char === 'W') {
@@ -177,6 +188,45 @@ export class WorldScene extends Phaser.Scene {
         }
       }
     }
+
+    // Render illuminated doorway threshold and labels
+    this.renderPortalDecorations(areaData);
+  }
+
+  private renderPortalDecorations(areaData: typeof AREA_MAPS[AreaKey]): void {
+    areaData.portals.forEach(portal => {
+      const pw = (portal.width ?? 2) * 32;
+      const ph = (portal.height ?? 2) * 32;
+      const cx = portal.x * 32 + pw / 2;
+      const cy = portal.y * 32 + ph / 2;
+
+      // Subtle glowing doorway threshold
+      const mat = this.add.rectangle(cx, cy, pw - 4, ph - 4, 0x38bdf8, 0.15)
+        .setStrokeStyle(1.5, 0x38bdf8, 0.7)
+        .setDepth(2);
+
+      this.tweens.add({
+        targets: mat,
+        alpha: 0.35,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      // Doorway direction label hint
+      let labelY = cy - 22;
+      if (portal.y === 0) labelY = cy + 24;
+      if (portal.x === 0) labelY = cy - 20;
+
+      this.add.text(cx, labelY, portal.label, {
+        fontFamily: "'Press Start 2P', monospace",
+        fontSize: '6px',
+        color: '#fef08a',
+        stroke: '#0f172a',
+        strokeThickness: 3
+      }).setOrigin(0.5).setDepth(15);
+    });
   }
 
   /**
@@ -713,11 +763,26 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private checkPortals(): void {
-    const playerTileX = Math.floor(this.player.x / 32);
-    const playerTileY = Math.floor(this.player.y / 32);
+    if (this.isTransitioning) return;
+
+    const px = this.player.x;
+    const py = this.player.y;
 
     for (const portal of this.portals) {
-      if (playerTileX === portal.x && playerTileY === portal.y) {
+      const pW = portal.width ?? 2;
+      const pH = portal.height ?? 2;
+
+      const minX = portal.x * 32;
+      const maxX = (portal.x + pW) * 32;
+      const minY = portal.y * 32;
+      const maxY = (portal.y + pH) * 32;
+
+      // Generous trigger bounding box (covers the entire doorway width & height)
+      // Player can walk through the left, center, or right of the doorway seamlessly
+      const isOverlapX = px >= minX - 6 && px <= maxX + 6;
+      const isOverlapY = py >= minY - 6 && py <= maxY + 6;
+
+      if (isOverlapX && isOverlapY) {
         this.transitionToArea(portal.targetArea, portal.targetX, portal.targetY);
         break;
       }

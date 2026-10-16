@@ -1,8 +1,10 @@
 export type AreaKey = 'VILLAGE' | 'GARDEN' | 'CASTLE' | 'FOREST';
 
 export interface PortalDef {
-  x: number; // tile x
+  x: number; // tile x (left / top-most tile of portal)
   y: number; // tile y
+  width?: number; // width in tiles (e.g. 2 for 2-tile wide door)
+  height?: number; // height in tiles (e.g. 2 for 2-tile tall door)
   targetArea: AreaKey;
   targetX: number; // target tile x
   targetY: number; // target tile y
@@ -64,9 +66,9 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_grass',
     portals: [
-      { x: 24, y: 10, targetArea: 'GARDEN', targetX: 1, targetY: 10, label: 'Taman Bunga Kerajaan ➡️' },
-      { x: 12, y: 0, targetArea: 'CASTLE', targetX: 12, targetY: 18, label: '⬆️ Istana & Dapur' },
-      { x: 12, y: 19, targetArea: 'FOREST', targetX: 12, targetY: 1, label: '⬇️ Hutan Rahasia' }
+      { x: 24, y: 10, width: 1, height: 2, targetArea: 'GARDEN', targetX: 1, targetY: 10.5, label: 'Taman Bunga Kerajaan ➡️' },
+      { x: 12, y: 0, width: 2, height: 1, targetArea: 'CASTLE', targetX: 12.5, targetY: 18, label: '⬆️ Istana & Dapur' },
+      { x: 12, y: 19, width: 2, height: 1, targetArea: 'FOREST', targetX: 12.5, targetY: 1, label: '⬇️ Hutan Rahasia' }
     ],
     npcs: [
       {
@@ -151,7 +153,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_grass',
     portals: [
-      { x: 0, y: 10, targetArea: 'VILLAGE', targetX: 23, targetY: 10, label: '⬅️ Alun-Alun Istana' }
+      { x: 0, y: 10, width: 1, height: 2, targetArea: 'VILLAGE', targetX: 23, targetY: 10.5, label: '⬅️ Alun-Alun Istana' }
     ],
     npcs: [
       {
@@ -228,7 +230,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_castle_floor',
     portals: [
-      { x: 12, y: 19, targetArea: 'VILLAGE', targetX: 12, targetY: 1, label: '⬇️ Alun-Alun Istana' }
+      { x: 12, y: 19, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 1, label: '⬇️ Alun-Alun Istana' }
     ],
     npcs: [
       {
@@ -305,7 +307,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 24,
     defaultTile: 'tile_forest_grass',
     portals: [
-      { x: 12, y: 0, targetArea: 'VILLAGE', targetX: 12, targetY: 18, label: '⬆️ Alun-Alun Istana' }
+      { x: 12, y: 0, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 18, label: '⬆️ Alun-Alun Istana' }
     ],
     npcs: [
       {
