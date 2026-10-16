@@ -27,6 +27,9 @@ export class WorldScene extends Phaser.Scene {
   // Heal drops (enemy defeat loot)
   public healDrops: Phaser.Physics.Arcade.Sprite[] = [];
 
+  // Barrier sprites for Forest Gate until Gatekeeper challenge is answered
+  private forestGateBarriers: Phaser.Physics.Arcade.Sprite[] = [];
+
   // Direction arrow graphics (persistent single instances to prevent per-frame GC freezes)
   private dirArrowGraphic?: Phaser.GameObjects.Triangle;
   private dirArrowLabel?: Phaser.GameObjects.Text;
@@ -111,10 +114,19 @@ export class WorldScene extends Phaser.Scene {
 
     // Enemies
     areaData.enemies.forEach(def => {
+      // Do not respawn boss guardian if already defeated
+      if (def.id === 'boss_guardian' && GameState.isBossDefeated) {
+        return;
+      }
       const enemy = new Enemy(this, def);
       this.enemies.push(enemy);
       this.physics.add.collider(enemy, this.obstaclesGroup);
     });
+
+    // Close gate barrier in Forest if gatekeeper challenge not yet answered
+    if (this.currentAreaKey === 'FOREST' && !GameState.isQuestionAnswered('q_transportation')) {
+      this.createForestGateBarrier();
+    }
 
     // Connect UI singletons
     this.initUI();
@@ -244,6 +256,28 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private createForestGateBarrier(): void {
+    this.removeForestGateBarrier();
+    // Block tile (13, 4) with locked fence obstacle so player cannot walk around Gatekeeper
+    const tiles = [{ x: 13, y: 4 }];
+    tiles.forEach(t => {
+      const px = t.x * 32 + 16;
+      const py = t.y * 32 + 16;
+      const barrier = this.obstaclesGroup.create(px, py, 'tile_fence') as Phaser.Physics.Arcade.Sprite;
+      barrier.setDepth(6);
+      barrier.setTint(0xef4444);
+      barrier.refreshBody();
+      this.forestGateBarriers.push(barrier);
+    });
+  }
+
+  private removeForestGateBarrier(): void {
+    this.forestGateBarriers.forEach(b => {
+      if (b && b.active) b.destroy();
+    });
+    this.forestGateBarriers = [];
+  }
+
   /**
    * Draw a glowing ring under quest-active NPCs to help player navigate.
    */
@@ -257,7 +291,7 @@ export class WorldScene extends Phaser.Scene {
         isTarget = true;
       }
       if (npc.dataDef.id === 'npc_gatekeeper' && GameState.hasForestKey &&
-          stage <= QuestStage.GATE_CHALLENGE) {
+          !GameState.isQuestionAnswered('q_transportation')) {
         isTarget = true;
       }
 
@@ -499,32 +533,71 @@ export class WorldScene extends Phaser.Scene {
     const stage = GameState.questStage;
 
     if (this.currentAreaKey === 'VILLAGE') {
-      // Point to princess or gatekeeper NPC
-      for (const npc of this.npcs) {
-        if (npc.dataDef.id === 'npc_princess' &&
-            (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS)) {
-          return { x: npc.x, y: npc.y };
-        }
-        if (npc.dataDef.id === 'npc_gatekeeper' &&
-            GameState.hasForestKey && stage <= QuestStage.GATE_CHALLENGE) {
-          return { x: npc.x, y: npc.y };
-        }
+      // Point to princess
+      if (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS) {
+        const princess = this.npcs.find(n => n.dataDef.id === 'npc_princess');
+        if (princess) return { x: princess.x, y: princess.y };
       }
 
       // Point to area portals based on quest
       if (stage === QuestStage.INVESTIGATE_AREAS && !GameState.hasForestKey) {
-        // Point east toward Garden portal
-        const gardenPortal = this.portals.find(p => p.targetArea === 'GARDEN');
-        if (gardenPortal) return { x: gardenPortal.x * 32 + 16, y: gardenPortal.y * 32 + 16 };
+        // Point north toward Castle/Kitchen to find the key
+        const castlePortal = this.portals.find(p => p.targetArea === 'CASTLE');
+        if (castlePortal) return { x: castlePortal.x * 32 + 16, y: castlePortal.y * 32 + 16 };
+      }
+
+      // Point south toward forest portal if has key or gate challenge
+      if (GameState.hasForestKey && stage <= QuestStage.RETRIEVE_CROWN) {
+        const forestPortal = this.portals.find(p => p.targetArea === 'FOREST');
+        if (forestPortal) return { x: forestPortal.x * 32 + 16, y: forestPortal.y * 32 + 16 };
       }
     }
 
-    if (this.currentAreaKey === 'FOREST') {
-      // Point to crown altar
-      if (stage === QuestStage.RETRIEVE_CROWN || stage === QuestStage.FOREST_EXPLORATION) {
-        const altar = this.interactables.find(o => o.dataDef.isCrownAltar);
-        if (altar) return { x: altar.x, y: altar.y };
+    if (this.currentAreaKey === 'CASTLE') {
+      // If looking for key, point to kitchen sink
+      if (!GameState.hasForestKey) {
+        const sink = this.interactables.find(o => o.dataDef.id === 'obj_sink_kitchen');
+        if (sink) return { x: sink.x, y: sink.y };
       }
+      // If key found, point back south to village exit
+      const exitPortal = this.portals.find(p => p.targetArea === 'VILLAGE');
+      if (exitPortal) return { x: exitPortal.x * 32 + 16, y: exitPortal.y * 32 + 16 };
+    }
+
+    if (this.currentAreaKey === 'GARDEN') {
+      // Point to exit portal back to village
+      const exitPortal = this.portals.find(p => p.targetArea === 'VILLAGE');
+      if (exitPortal) return { x: exitPortal.x * 32 + 16, y: exitPortal.y * 32 + 16 };
+    }
+
+    if (this.currentAreaKey === 'FOREST') {
+      if (stage === QuestStage.RETURN_TO_PRINCESS) {
+        // Point north exit to village
+        const villagePortal = this.portals.find(p => p.targetArea === 'VILLAGE');
+        if (villagePortal) return { x: villagePortal.x * 32 + 16, y: villagePortal.y * 32 + 16 };
+      }
+
+      // 1. Point to gatekeeper if gate challenge not yet answered
+      if (!GameState.isQuestionAnswered('q_transportation')) {
+        const gatekeeper = this.npcs.find(n => n.dataDef.id === 'npc_gatekeeper');
+        if (gatekeeper) return { x: gatekeeper.x, y: gatekeeper.y };
+      }
+
+      // 2. Point to ancient tablet if not answered
+      if (!GameState.isQuestionAnswered('q_present_continuous')) {
+        const tablet = this.interactables.find(o => o.dataDef.id === 'obj_tablet_forest');
+        if (tablet) return { x: tablet.x, y: tablet.y };
+      }
+
+      // 3. Point to guardian boss if still alive
+      if (!GameState.isBossDefeated) {
+        const boss = this.enemies.find(e => e.enemyDef.id === 'boss_guardian' && !e.getIsDead());
+        if (boss) return { x: boss.x, y: boss.y };
+      }
+
+      // 4. Point to crown altar
+      const altar = this.interactables.find(o => o.dataDef.isCrownAltar);
+      if (altar) return { x: altar.x, y: altar.y };
     }
 
     return null;
@@ -532,12 +605,26 @@ export class WorldScene extends Phaser.Scene {
 
   private getQuestTargetLabel(): string {
     const stage = GameState.questStage;
-    if (stage === QuestStage.TALK_TO_PRINCESS) return 'Putri';
-    if (stage === QuestStage.RETURN_TO_PRINCESS) return 'Putri';
-    if (stage === QuestStage.RETRIEVE_CROWN) return 'Mahkota';
-    if (stage === QuestStage.FOREST_EXPLORATION) return 'Altar';
-    if (GameState.hasForestKey) return 'Penjaga';
-    return 'Taman';
+    if (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS) return 'Putri';
+
+    if (this.currentAreaKey === 'VILLAGE') {
+      if (!GameState.hasForestKey) return 'Dapur';
+      return 'Hutan';
+    }
+
+    if (this.currentAreaKey === 'CASTLE') {
+      if (!GameState.hasForestKey) return 'Wastafel';
+      return 'Keluar';
+    }
+
+    if (this.currentAreaKey === 'FOREST') {
+      if (!GameState.isQuestionAnswered('q_transportation')) return 'Penjaga';
+      if (!GameState.isQuestionAnswered('q_present_continuous')) return 'Prasasti';
+      if (!GameState.isBossDefeated) return 'Monster';
+      return 'Mahkota';
+    }
+
+    return 'Misi';
   }
 
   private handlePlayerDefeated(): void {
@@ -641,6 +728,47 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    if (def.id === 'npc_gatekeeper') {
+      if (!GameState.hasForestKey) {
+        this.dialogModal.show({
+          title: def.name,
+          avatarIcon: def.avatarIcon,
+          message: 'Hutan Rahasia di depan sangat berbahaya! Kamu harus memiliki Kunci Hutan dari Istana sebelum melangkah ke sini!',
+          buttonText: 'Kembali'
+        });
+        return;
+      }
+
+      if (GameState.isQuestionAnswered('q_transportation')) {
+        this.dialogModal.show({
+          title: def.name,
+          avatarIcon: def.avatarIcon,
+          message: def.dialogueSolved,
+          buttonText: 'Maju ke Hutan!'
+        });
+        return;
+      }
+
+      const question = getQuestionById('q_transportation');
+      if (question) {
+        this.dialogModal.show({
+          title: `${def.name} (${def.title})`,
+          avatarIcon: def.avatarIcon,
+          message: def.dialogueIntro,
+          buttonText: 'Jawab Tantangan',
+          onContinue: () => {
+            this.quizModal.show(question, () => {
+              if (GameState.isQuestionAnswered('q_transportation')) {
+                this.removeForestGateBarrier();
+                AudioSystem.playCorrect();
+              }
+            });
+          }
+        });
+        return;
+      }
+    }
+
     if (def.questionId) {
       const question = getQuestionById(def.questionId);
       if (question) {
@@ -677,9 +805,19 @@ export class WorldScene extends Phaser.Scene {
 
       if (!GameState.isQuestionAnswered('q_present_continuous')) {
         this.dialogModal.show({
-          title: 'Altar Terkunci!',
+          title: 'Altar Terkunci Sihir Kuno!',
           avatarIcon: 'lock',
-          message: 'Mahkota Bintang dilindungi perisai sihir ungu kuno. Kamu harus membaca dan memecahkan mantra di Prasasti Kuno di dekat altar terlebih dahulu!'
+          message: 'Mahkota Bintang dilindungi oleh perisai sihir ungu kuno. Pecahkan mantra di Prasasti Kuno di dekat altar terlebih dahulu!'
+        });
+        return;
+      }
+
+      if (!GameState.isBossDefeated) {
+        this.dialogModal.show({
+          title: 'Monster Penjaga Menghalangi!',
+          avatarIcon: 'sword',
+          message: 'Monster Penjaga Hutan (Guardian Boss) masih mengaum di dekat altar! Kalahkan monster tersebut dengan pedangmu untuk membebaskan Mahkota Bintang!',
+          buttonText: 'Siap Bertarung!'
         });
         return;
       }
@@ -689,7 +827,7 @@ export class WorldScene extends Phaser.Scene {
       this.dialogModal.show({
         title: 'MAHKOTA BINTANG DITEMUKAN!',
         avatarIcon: 'crown',
-        message: 'Luar biasa! Kamu berhasil mengangkat Mahkota Bintang yang bersinar terang! Sekarang, kembalikan mahkota ini kepada Putri Cahaya di Alun-Alun Istana!',
+        message: 'Luar biasa! Setelah memecahkan mantra kuno dan mengalahkan Monster Penjaga, Mahkota Bintang kini bersinar terang di tanganmu! Kembalikan mahkota ini kepada Putri Cahaya di Alun-Alun Istana!',
         buttonText: 'Bawa Kembali ke Putri'
       });
       return;
@@ -803,6 +941,20 @@ export class WorldScene extends Phaser.Scene {
       const isOverlapY = py >= minY - 6 && py <= maxY + 6;
 
       if (isOverlapX && isOverlapY) {
+        // Lock Forest portal if player does not have Forest Key yet
+        if (portal.targetArea === 'FOREST' && !GameState.hasForestKey) {
+          this.player.y = (portal.y - 1) * 32 + 16;
+          this.player.setVelocity(0, 0);
+          AudioSystem.playPlayerHurt();
+          this.dialogModal.show({
+            title: 'Gerbang Hutan Terkunci!',
+            avatarIcon: 'lock',
+            message: 'Gerbang menuju Hutan Rahasia terkunci rapat dengan gembok kristal! Temukan Kunci Hutan di Dapur Istana (Utara) terlebih dahulu!',
+            buttonText: 'Cari Kunci'
+          });
+          break;
+        }
+
         this.transitionToArea(portal.targetArea, portal.targetX, portal.targetY);
         break;
       }

@@ -32,6 +32,7 @@ class GameStateManager {
   public questStage: QuestStage = QuestStage.TALK_TO_PRINCESS;
   public hasCrown: boolean = false;
   public hasForestKey: boolean = false;
+  public isBossDefeated: boolean = false;
   public monstersDefeated: number = 0;
   public totalMonstersInForest: number = 3;
 
@@ -75,6 +76,7 @@ class GameStateManager {
     this.questStage = QuestStage.TALK_TO_PRINCESS;
     this.hasCrown = false;
     this.hasForestKey = false;
+    this.isBossDefeated = false;
     this.monstersDefeated = 0;
     this.answeredQuestions.clear();
 
@@ -116,10 +118,29 @@ class GameStateManager {
     // Handle quest progression hooks based on specific educational interactions
     if (questionId === 'q_kitchen_activities') {
       this.hasForestKey = true;
+      this.setQuestStage(QuestStage.GATE_CHALLENGE);
+    } else if (questionId === 'q_transportation') {
+      this.setQuestStage(QuestStage.FOREST_EXPLORATION);
+    } else if (questionId === 'q_present_continuous') {
+      this.checkAltarReady();
     }
 
     this.notify();
     return { isCorrect, pointsEarned };
+  }
+
+  public checkAltarReady(): void {
+    if (this.isBossDefeated && this.isQuestionAnswered('q_present_continuous')) {
+      if (this.questStage < QuestStage.RETRIEVE_CROWN) {
+        this.setQuestStage(QuestStage.RETRIEVE_CROWN);
+      }
+    }
+  }
+
+  public defeatBoss(): void {
+    this.isBossDefeated = true;
+    this.checkAltarReady();
+    this.notify();
   }
 
   public isQuestionAnswered(questionId: string): boolean {
@@ -187,11 +208,11 @@ class GameStateManager {
           return '🗝️ Kunci Hutan ditemukan! Bicaralah pada Penjaga Gerbang Hutan (Selatan)!';
         }
       case QuestStage.GATE_CHALLENGE:
-        return '🚪 Jawab pertanyaan Penjaga Gerbang untuk membuka jalan ke Hutan Rahasia!';
+        return '🚪 Bicaralah pada Penjaga Gerbang Hutan (Selatan) dan pecahkan tantangannya!';
       case QuestStage.FOREST_EXPLORATION:
-        return '⚔️ Jelajahi Hutan Rahasia, kalahkan monster, dan baca Prasasti Kuno!';
+        return '⚔️ Jelajahi Hutan Rahasia, kalahkan Monster Penjaga Hutan, dan pecahkan Prasasti Kuno!';
       case QuestStage.RETRIEVE_CROWN:
-        return '✨ Ambil Mahkota Bintang di altar suci hutan!';
+        return '✨ Altar suci telah terbuka! Ambil Mahkota Bintang di altar!';
       case QuestStage.RETURN_TO_PRINCESS:
         return '👑 Bawa Mahkota Bintang kembali ke Putri Cahaya di Alun-Alun Istana!';
       case QuestStage.COMPLETED:

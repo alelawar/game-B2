@@ -245,6 +245,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (body) body.enable = false;
 
     GameState.monstersDefeated += 1;
+    if (this.enemyDef.id === 'boss_guardian') {
+      GameState.defeatBoss();
+    }
 
     // Hide HP bar
     this.hpBarBg.destroy();

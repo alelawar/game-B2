@@ -159,16 +159,22 @@ export class HUD {
         return 'Temui Putri Cahaya di Alun-Alun Istana';
       case QuestStage.INVESTIGATE_AREAS:
         return !GameState.hasForestKey
-          ? 'Cari petunjuk di Taman (Timur) dan Dapur (Utara)'
+          ? 'Cari petunjuk di Taman (Timur) & Dapur (Utara)'
           : 'Kunci ditemukan! Temui Penjaga Gerbang (Selatan)';
       case QuestStage.GATE_CHALLENGE:
-        return 'Jawab pertanyaan Penjaga Gerbang Hutan';
+        return 'Jawab tantangan Penjaga Gerbang Hutan';
       case QuestStage.FOREST_EXPLORATION:
-        return 'Jelajahi Hutan, kalahkan monster, baca Prasasti';
+        if (!GameState.isQuestionAnswered('q_present_continuous') && !GameState.isBossDefeated) {
+          return 'Kalahkan Monster Penjaga & pecahkan Prasasti';
+        } else if (!GameState.isQuestionAnswered('q_present_continuous')) {
+          return 'Pecahkan mantra di Prasasti Kuno Hutan';
+        } else {
+          return 'Kalahkan Monster Penjaga Hutan (Boss)';
+        }
       case QuestStage.RETRIEVE_CROWN:
-        return 'Ambil Mahkota Bintang di altar hutan!';
+        return 'Altar terbuka! Ambil Mahkota Bintang di altar!';
       case QuestStage.RETURN_TO_PRINCESS:
-        return 'Kembalikan Mahkota ke Putri Cahaya!';
+        return 'Bawa Mahkota Bintang kembali ke Putri Cahaya!';
       case QuestStage.COMPLETED:
         return 'Misi Selesai! Kerajaan Terselamatkan!';
     }
@@ -177,28 +183,30 @@ export class HUD {
   private renderQuestLog(): void {
     const stage = GameState.questStage;
 
-    const steps = [
-      { label: 'Temui Putri Cahaya', stage: QuestStage.TALK_TO_PRINCESS },
-      { label: 'Cari petunjuk di Taman & Dapur', stage: QuestStage.INVESTIGATE_AREAS },
+    const steps: { label: string; stage: number; done?: boolean }[] = [
+      { label: 'Temui Putri Cahaya', stage: QuestStage.TALK_TO_PRINCESS, done: stage > QuestStage.TALK_TO_PRINCESS },
+      { label: 'Cari petunjuk di Taman & Dapur', stage: QuestStage.INVESTIGATE_AREAS, done: GameState.hasForestKey },
       { label: 'Dapatkan Kunci Hutan Rahasia', stage: -1, done: GameState.hasForestKey },
-      { label: 'Jawab tantangan Penjaga Gerbang', stage: QuestStage.GATE_CHALLENGE },
-      { label: 'Kalahkan monster di Hutan', stage: QuestStage.FOREST_EXPLORATION },
-      { label: 'Baca Prasasti Kuno', stage: -2, done: GameState.isQuestionAnswered('q_present_continuous') },
-      { label: 'Ambil Mahkota Bintang', stage: QuestStage.RETRIEVE_CROWN },
-      { label: 'Kembalikan ke Putri Cahaya', stage: QuestStage.RETURN_TO_PRINCESS },
+      { label: 'Jawab tantangan Penjaga Gerbang', stage: QuestStage.GATE_CHALLENGE, done: GameState.isQuestionAnswered('q_transportation') },
+      { label: 'Pecahkan mantra Prasasti Kuno', stage: -2, done: GameState.isQuestionAnswered('q_present_continuous') },
+      { label: 'Kalahkan Monster Penjaga Hutan', stage: -3, done: GameState.isBossDefeated },
+      { label: 'Ambil Mahkota Bintang di altar', stage: QuestStage.RETRIEVE_CROWN, done: GameState.hasCrown },
+      { label: 'Kembalikan ke Putri Cahaya', stage: QuestStage.RETURN_TO_PRINCESS, done: stage === QuestStage.COMPLETED },
     ];
 
     let bodyHtml = '';
     steps.forEach(step => {
       let cls = '';
-      if (step.stage === -1) {
-        cls = step.done ? 'done' : (stage >= QuestStage.INVESTIGATE_AREAS ? 'active' : '');
-      } else if (step.stage === -2) {
-        cls = step.done ? 'done' : (stage >= QuestStage.FOREST_EXPLORATION ? 'active' : '');
-      } else if (stage > step.stage) {
+      if (step.done) {
         cls = 'done';
+      } else if (step.stage === -1) {
+        cls = stage >= QuestStage.INVESTIGATE_AREAS ? 'active' : '';
+      } else if (step.stage === -2 || step.stage === -3) {
+        cls = stage >= QuestStage.FOREST_EXPLORATION ? 'active' : '';
       } else if (stage === step.stage) {
         cls = 'active';
+      } else if (stage > step.stage && step.stage >= 0) {
+        cls = 'done';
       }
 
       const markerInner = cls === 'done'
@@ -303,7 +311,7 @@ export class HUD {
   private isNPCQuestTarget(npcId: string): boolean {
     const stage = GameState.questStage;
     if (npcId === 'npc_princess' && (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS)) return true;
-    if (npcId === 'npc_gatekeeper' && GameState.hasForestKey && stage <= QuestStage.GATE_CHALLENGE) return true;
+    if (npcId === 'npc_gatekeeper' && GameState.hasForestKey && !GameState.isQuestionAnswered('q_transportation')) return true;
     return false;
   }
 
