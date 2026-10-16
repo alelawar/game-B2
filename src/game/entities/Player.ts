@@ -27,8 +27,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.setCollideWorldBounds(true);
-    this.setSize(20, 20);
-    this.setOffset(6, 12);
+    // Footprint-only collision box (16x14 at bottom) so sprite never gets stuck on trees or fences
+    this.setSize(16, 14);
+    this.setOffset(8, 16);
 
     this.setupInput();
   }
@@ -54,6 +55,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   public updatePlayer(canMove: boolean = true): { attackTriggered: boolean; interactTriggered: boolean } {
     let attackTriggered = false;
     let interactTriggered = false;
+
+    // Safety watchdog: if isAttacking but hitbox is already gone, release attacking lock
+    if (this.isAttacking && !this.attackHitbox) {
+      this.isAttacking = false;
+    }
 
     if (!canMove || this.isAttacking) {
       this.setVelocity(0, 0);

@@ -7,15 +7,18 @@ export class HUD {
   private container: HTMLElement;
   private unsubscribe: () => void;
   private onRestartCallback: () => void;
+  private onReturnToBaseCallback: () => void;
   private interactionBubble: HTMLElement;
   private questLogPanel: HTMLElement;
   private minimapContainer: HTMLElement;
   private minimapCanvas: HTMLCanvasElement;
   private minimapCtx: CanvasRenderingContext2D;
+  private controlsHint: HTMLElement;
   private questLogOpen: boolean = false;
 
-  constructor(onRestartCallback: () => void) {
+  constructor(onRestartCallback: () => void, onReturnToBaseCallback: () => void) {
     this.onRestartCallback = onRestartCallback;
+    this.onReturnToBaseCallback = onReturnToBaseCallback;
 
     this.container = document.createElement('div');
     this.container.id = 'game-hud';
@@ -35,11 +38,22 @@ export class HUD {
     this.minimapCtx = this.minimapCanvas.getContext('2d')!;
     this.minimapCtx.imageSmoothingEnabled = false;
 
+    // Movement & controls hint bar (separate floating element at bottom-left)
+    this.controlsHint = document.createElement('div');
+    this.controlsHint.id = 'controls-hint';
+    this.controlsHint.innerHTML = `
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gerak
+      <kbd>E</kbd> Interaksi
+      <kbd>Spasi</kbd> Serang
+      <kbd>B</kbd> Base
+    `;
+
     this.render();
     document.body.appendChild(this.container);
     document.body.appendChild(this.interactionBubble);
     document.body.appendChild(this.questLogPanel);
     document.body.appendChild(this.minimapContainer);
+    document.body.appendChild(this.controlsHint);
 
     this.minimapContainer.appendChild(this.minimapCanvas);
 
@@ -72,18 +86,15 @@ export class HUD {
         <button class="hud-btn" id="hud-btn-quest" title="Catatan Misi">
           ${icon(Icons.scroll(16, 16))}
         </button>
+        <button class="hud-btn hud-btn-home" id="hud-btn-home" title="Kembali ke Alun-Alun (Base) [B]">
+          ${Icons.home(16, 16)}
+        </button>
         <button class="hud-btn" id="hud-btn-sound" title="Suara">
           ${Icons.volume(16, 16)}
         </button>
-        <button class="hud-btn" id="hud-btn-restart" title="Ulang">
+        <button class="hud-btn" id="hud-btn-restart" title="Ulang Petualangan">
           ${Icons.refresh(16, 16)}
         </button>
-      </div>
-
-      <div id="controls-hint">
-        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Gerak
-        <kbd>E</kbd> Interaksi
-        <kbd>Spasi</kbd> Serang
       </div>
     `;
   }
@@ -92,10 +103,15 @@ export class HUD {
     const soundBtn = this.container.querySelector('#hud-btn-sound') as HTMLButtonElement;
     const restartBtn = this.container.querySelector('#hud-btn-restart') as HTMLButtonElement;
     const questBtn = this.container.querySelector('#hud-btn-quest') as HTMLButtonElement;
+    const homeBtn = this.container.querySelector('#hud-btn-home') as HTMLButtonElement;
 
     soundBtn.addEventListener('click', () => {
       const isMuted = AudioSystem.toggleMute();
       soundBtn.innerHTML = isMuted ? Icons.volumeOff(16, 16) : Icons.volume(16, 16);
+    });
+
+    homeBtn?.addEventListener('click', () => {
+      this.onReturnToBaseCallback();
     });
 
     restartBtn.addEventListener('click', () => {

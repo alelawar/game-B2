@@ -130,11 +130,22 @@ export class WorldScene extends Phaser.Scene {
 
     // Direction arrow singleton (created once, updated per-frame)
     this.initDirectionArrow();
+
+    // Keyboard shortcut B: Return to Base (Alun-Alun)
+    const keyB = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+    keyB?.on('down', () => {
+      if (!this.isModalOpen && !this.isTransitioning) {
+        this.returnToBase();
+      }
+    });
   }
 
   private initUI(): void {
     if (!this.hud) {
-      this.hud = new HUD(() => this.restartGame());
+      this.hud = new HUD(
+        () => this.restartGame(),
+        () => this.returnToBase()
+      );
     }
     if (!this.dialogModal) {
       this.dialogModal = new DialogModal();
@@ -812,6 +823,22 @@ export class WorldScene extends Phaser.Scene {
         startTileY: targetTileY
       });
     });
+  }
+
+  public returnToBase(): void {
+    if (this.isTransitioning) return;
+    this.clearDirectionArrows();
+    AudioSystem.playInteract();
+
+    // Reset player state to prevent stuck/glitched states
+    if (this.player) {
+      this.player.isAttacking = false;
+      this.player.isInvulnerable = false;
+      this.player.setVelocity(0, 0);
+    }
+
+    // Teleport back to safe village square center without resetting progress
+    this.transitionToArea('VILLAGE', 12, 10);
   }
 
   public restartGame(): void {
