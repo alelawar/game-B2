@@ -210,7 +210,12 @@ export class HUD {
     `;
   }
 
-  public updateMinimap(currentArea: AreaKey, playerTileX: number, playerTileY: number): void {
+  public updateMinimap(
+    currentArea: AreaKey,
+    playerTileX: number,
+    playerTileY: number,
+    activeEnemies?: { x: number; y: number; isBoss: boolean }[]
+  ): void {
     const area = AREA_MAPS[currentArea];
     const ctx = this.minimapCtx;
     const cw = this.minimapCanvas.width;
@@ -236,6 +241,16 @@ export class HUD {
       }
     }
 
+    // Draw active enemies (radar red dots)
+    if (activeEnemies && activeEnemies.length > 0) {
+      activeEnemies.forEach(e => {
+        ctx.fillStyle = e.isBoss ? '#f59e0b' : '#ef4444';
+        const ex = (e.x / 32) * tw;
+        const ey = (e.y / 32) * th;
+        ctx.fillRect(ex - 1, ey - 1, tw + 1, th + 1);
+      });
+    }
+
     // Draw NPCs
     area.npcs.forEach(npc => {
       const isQuestTarget = this.isNPCQuestTarget(npc.id);
@@ -250,7 +265,7 @@ export class HUD {
     });
 
     // Draw player
-    ctx.fillStyle = '#ef4444';
+    ctx.fillStyle = '#38bdf8';
     ctx.fillRect(playerTileX * tw - 1, playerTileY * th - 1, tw + 3, th + 3);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1;

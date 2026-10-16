@@ -30,6 +30,10 @@ export class WorldScene extends Phaser.Scene {
   // Direction arrow graphics (Phaser scene-space, always visible on screen edge)
   private dirArrows: { graphic: Phaser.GameObjects.Triangle; label: Phaser.GameObjects.Text }[] = [];
 
+  // Target indicator marker for closest enemy in combat range
+  private enemyTargetRing?: Phaser.GameObjects.Arc;
+  private enemyTargetArrow?: Phaser.GameObjects.Triangle;
+
   // UI layer references
   public hud!: HUD;
   public dialogModal!: DialogModal;
@@ -119,6 +123,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Quest highlight rings on active NPCs
     this.addQuestHighlights();
+
+    // Enemy target markers
+    this.initEnemyTargetMarkers();
   }
 
   private initUI(): void {
@@ -253,11 +260,17 @@ export class WorldScene extends Phaser.Scene {
       this.minimapTick = 0;
       const tileX = Math.floor(this.player.x / 32);
       const tileY = Math.floor(this.player.y / 32);
-      this.hud?.updateMinimap(this.currentAreaKey, tileX, tileY);
+      const activeEnemies = this.enemies
+        .filter(e => !e.getIsDead())
+        .map(e => ({ x: e.x, y: e.y, isBoss: e.enemyDef.type === 'boss' }));
+      this.hud?.updateMinimap(this.currentAreaKey, tileX, tileY, activeEnemies);
     }
 
     // Direction arrow to quest target
     this.updateDirectionArrow();
+
+    // Update target marker on closest enemy
+    this.updateEnemyTargeting();
   }
 
   private updateEnemiesCombat(attackTriggered: boolean, delta: number): void {
@@ -642,6 +655,61 @@ export class WorldScene extends Phaser.Scene {
       avatarIcon: 'search',
       message: def.examineText
     });
+  }
+
+  private initEnemyTargetMarkers(): void {
+    // Ground reticle ring under targeted enemy
+    this.enemyTargetRing = this.add.circle(0, 0, 14, 0xef4444, 0.15)
+      .setStrokeStyle(1.5, 0xef4444, 0.85)
+      .setDepth(8)
+      .setVisible(false);
+
+    // Downward target triangle arrow above targeted enemy
+    this.enemyTargetArrow = this.add.triangle(0, 0, -4, -6, 4, -6, 0, 2, 0xef4444, 0.95)
+      .setDepth(22)
+      .setVisible(false);
+
+    // Subtle breathing pulse for targeting ring
+    this.tweens.add({
+      targets: this.enemyTargetRing,
+      scaleX: 1.25,
+      scaleY: 1.25,
+      alpha: 0.05,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+  }
+
+  private updateEnemyTargeting(): void {
+    if (!this.enemyTargetRing || !this.enemyTargetArrow) return;
+
+    let nearestEnemy: Enemy | null = null;
+    let minDistance = 130; // Max targeting range in world pixels
+
+    for (const enemy of this.enemies) {
+      if (enemy.getIsDead()) continue;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestEnemy = enemy;
+      }
+    }
+
+    if (nearestEnemy && !this.isModalOpen) {
+      const isBoss = nearestEnemy.enemyDef.type === 'boss';
+      this.enemyTargetRing.setPosition(nearestEnemy.x, nearestEnemy.y + 6);
+      this.enemyTargetRing.setRadius(isBoss ? 20 : 13);
+      this.enemyTargetRing.setVisible(true);
+
+      const arrowY = nearestEnemy.y - (isBoss ? 28 : 22);
+      this.enemyTargetArrow.setPosition(nearestEnemy.x, arrowY);
+      this.enemyTargetArrow.setVisible(true);
+    } else {
+      this.enemyTargetRing.setVisible(false);
+      this.enemyTargetArrow.setVisible(false);
+    }
   }
 
   private checkPortals(): void {

@@ -114,7 +114,12 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         examineText: 'Air mancur istana yang jernih memulihkan staminamu! Airnya sangat segar.'
       }
     ],
-    enemies: [],
+    enemies: [
+      { id: 'village_slime_1', type: 'slime', x: 3, y: 7, health: 2 },
+      { id: 'village_slime_2', type: 'slime', x: 21, y: 7, health: 2 },
+      { id: 'village_slime_3', type: 'slime', x: 4, y: 16, health: 2 },
+      { id: 'village_slime_4', type: 'slime', x: 20, y: 16, health: 2 }
+    ],
     layout: [
       'WWWWWWWWWWWW..WWWWWWWWWWW', // y=0 (North exit at 12)
       'W.......................W',
@@ -184,7 +189,14 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         examineText: 'Meja kayu di bawah rindang gazebo. Ada tas sekolah di bawahnya yang memuat petunjuk tentang Dapur Istana!'
       }
     ],
-    enemies: [],
+    enemies: [
+      { id: 'garden_slime_1', type: 'slime', x: 4, y: 7, health: 2 },
+      { id: 'garden_slime_2', type: 'slime', x: 21, y: 6, health: 2 },
+      { id: 'garden_slime_3', type: 'slime', x: 12, y: 3, health: 2 },
+      { id: 'garden_slime_4', type: 'slime', x: 4, y: 13, health: 2 },
+      { id: 'garden_slime_5', type: 'slime', x: 20, y: 12, health: 2 },
+      { id: 'garden_slime_6', type: 'slime', x: 12, y: 17, health: 2 }
+    ],
     layout: [
       'WWWWWWWWWWWWWWWWWWWWWWWWW',
       'W...TT.............TT...W',
@@ -254,7 +266,14 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         examineText: 'Sofa mewah tempat peristirahatan keluarga kerajaan. Ada kuis tentang perabotan ruang tamu!'
       }
     ],
-    enemies: [],
+    enemies: [
+      { id: 'castle_slime_1', type: 'slime', x: 12, y: 4, health: 2 },
+      { id: 'castle_slime_2', type: 'slime', x: 4, y: 12, health: 2 },
+      { id: 'castle_slime_3', type: 'slime', x: 20, y: 12, health: 2 },
+      { id: 'castle_slime_4', type: 'slime', x: 7, y: 15, health: 2 },
+      { id: 'castle_slime_5', type: 'slime', x: 17, y: 15, health: 2 },
+      { id: 'castle_slime_6', type: 'slime', x: 12, y: 11, health: 3 }
+    ],
     layout: [
       'WWWWWWWWWWWWWWWWWWWWWWWWW',
       'W.......................W',
@@ -325,10 +344,21 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
       }
     ],
     enemies: [
+      { id: 'slime_forest_north_1', type: 'slime', x: 7, y: 8, health: 2 },
+      { id: 'slime_forest_north_2', type: 'slime', x: 17, y: 8, health: 2 },
       { id: 'slime_1', type: 'slime', x: 7, y: 11, health: 2 },
       { id: 'slime_2', type: 'slime', x: 17, y: 11, health: 2 },
+      { id: 'slime_forest_mid', type: 'slime', x: 12, y: 10, health: 2 },
+      { id: 'slime_forest_west_1', type: 'slime', x: 4, y: 15, health: 2 },
+      { id: 'slime_forest_east_1', type: 'slime', x: 20, y: 15, health: 2 },
+      { id: 'slime_mini_boss', type: 'boss', x: 6, y: 13, health: 3 },
       { id: 'slime_3', type: 'slime', x: 8, y: 17, health: 2 },
-      { id: 'boss_guardian', type: 'boss', x: 12, y: 18, health: 4 }
+      { id: 'slime_forest_south_1', type: 'slime', x: 16, y: 17, health: 2 },
+      { id: 'slime_forest_south_2', type: 'slime', x: 5, y: 19, health: 2 },
+      { id: 'slime_forest_south_3', type: 'slime', x: 19, y: 19, health: 2 },
+      { id: 'slime_altar_guard_1', type: 'slime', x: 8, y: 21, health: 2 },
+      { id: 'slime_altar_guard_2', type: 'slime', x: 16, y: 21, health: 2 },
+      { id: 'boss_guardian', type: 'boss', x: 12, y: 18, health: 5 }
     ],
     layout: [
       'WWWWWWWWWWWW..WWWWWWWWWWW', // y=0 entrance
