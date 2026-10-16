@@ -66,9 +66,9 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_grass',
     portals: [
-      { x: 24, y: 10, width: 1, height: 2, targetArea: 'GARDEN', targetX: 1, targetY: 10.5, label: 'Taman Bunga Kerajaan ➡️' },
-      { x: 12, y: 0, width: 2, height: 1, targetArea: 'CASTLE', targetX: 12.5, targetY: 18, label: '⬆️ Istana & Dapur' },
-      { x: 12, y: 19, width: 2, height: 1, targetArea: 'FOREST', targetX: 12.5, targetY: 1, label: '⬇️ Hutan Rahasia' }
+      { x: 24, y: 10, width: 1, height: 2, targetArea: 'GARDEN', targetX: 2, targetY: 10.5, label: 'Taman Bunga Kerajaan ➡️' },
+      { x: 12, y: 0, width: 2, height: 1, targetArea: 'CASTLE', targetX: 12.5, targetY: 17, label: '⬆️ Istana & Dapur' },
+      { x: 12, y: 19, width: 2, height: 1, targetArea: 'FOREST', targetX: 12.5, targetY: 2, label: '⬇️ Hutan Rahasia' }
     ],
     npcs: [
       {
@@ -153,7 +153,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_grass',
     portals: [
-      { x: 0, y: 10, width: 1, height: 2, targetArea: 'VILLAGE', targetX: 23, targetY: 10.5, label: '⬅️ Alun-Alun Istana' }
+      { x: 0, y: 10, width: 1, height: 2, targetArea: 'VILLAGE', targetX: 22, targetY: 10.5, label: '⬅️ Alun-Alun Istana' }
     ],
     npcs: [
       {
@@ -230,7 +230,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 20,
     defaultTile: 'tile_castle_floor',
     portals: [
-      { x: 12, y: 19, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 1, label: '⬇️ Alun-Alun Istana' }
+      { x: 12, y: 19, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 2, label: '⬇️ Alun-Alun Istana' }
     ],
     npcs: [
       {
@@ -307,7 +307,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
     heightInTiles: 24,
     defaultTile: 'tile_forest_grass',
     portals: [
-      { x: 12, y: 0, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 18, label: '⬆️ Alun-Alun Istana' }
+      { x: 12, y: 0, width: 2, height: 1, targetArea: 'VILLAGE', targetX: 12.5, targetY: 17, label: '⬆️ Alun-Alun Istana' }
     ],
     npcs: [
       {

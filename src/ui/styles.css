@@ -190,11 +190,11 @@ body, html {
   box-shadow: none;
 }
 
-/* Controls hint bar (positioned neatly at bottom-left viewport, never overlapping top HUD) */
+/* Controls hint bar (positioned neatly beside virtual joystick on desktop) */
 #controls-hint {
   position: absolute;
-  bottom: 12px;
-  left: 14px;
+  bottom: 22px;
+  left: 156px;
   background: rgba(11, 17, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px;
@@ -354,8 +354,8 @@ body, html {
    ======================================================== */
 #minimap-container {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
+  bottom: 16px;
+  right: 16px;
   width: 120px;
   height: 100px;
   background: rgba(11, 17, 32, 0.9);
@@ -363,8 +363,24 @@ body, html {
   border-radius: 2px;
   box-shadow: 2px 2px 0px rgba(0,0,0,0.6);
   z-index: 12;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25), opacity 0.2s ease, border-color 0.2s ease;
+}
+
+#minimap-container:hover {
+  border-color: #f5a623;
+}
+
+#minimap-container.minimized {
+  transform: scale(0.6);
+  transform-origin: bottom right;
+  opacity: 0.65;
+}
+
+#minimap-container.minimized:hover {
+  opacity: 1;
 }
 
 #minimap-container canvas {
@@ -863,54 +879,176 @@ body, html {
 }
 
 /* ========================================================
-   TOUCH / MOBILE CONTROLS
+   GAME CONTROLS — Virtual Analog Joystick & Action Buttons
+   Visible on both Desktop (with keyboard sync) and Mobile
    ======================================================== */
-#mobile-controls {
+#game-controls, #mobile-controls {
   position: absolute;
-  bottom: 14px;
+  bottom: 16px;
   left: 0;
   width: 100%;
   display: flex;
   justify-content: space-between;
-  padding: 0 16px;
-  z-index: 50;
+  align-items: flex-end;
+  padding: 0 20px;
+  z-index: 40;
   pointer-events: none;
+  touch-action: none;
 }
 
-.touch-dpad {
-  display: grid;
-  grid-template-columns: repeat(3, 40px);
-  grid-template-rows: repeat(3, 40px);
-  gap: 3px;
+/* Virtual Joystick */
+.virtual-joystick-zone {
   pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
-.dpad-btn {
-  background: rgba(11, 17, 32, 0.85);
-  border: 2px solid rgba(255,255,255,0.25);
-  border-radius: 2px;
-  color: white;
+.virtual-joystick {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  user-select: none;
-  touch-action: manipulation;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
 }
 
-.dpad-btn:active {
-  background: #1d4ed8;
-  border-color: #60a5fa;
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px rgba(0,0,0,0.4);
+.joystick-base {
+  width: 114px;
+  height: 114px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.92) 80%);
+  border: 2px solid rgba(245, 166, 35, 0.45);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(245, 166, 35, 0.15);
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  backdrop-filter: blur(4px);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
+  opacity: 0.88;
 }
 
+.joystick-base:hover,
+.joystick-base.active-touch,
+.joystick-base.active-key {
+  opacity: 1;
+  border-color: #38bdf8;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.45), inset 0 0 16px rgba(56, 189, 248, 0.2);
+}
+
+.joystick-base:active,
+.joystick-base.active-touch {
+  cursor: grabbing;
+}
+
+/* Inner guide ring */
+.joystick-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+/* Axis directional markers */
+.joystick-axis-marker {
+  position: absolute;
+  font-size: 8px;
+  font-family: var(--font-pixel);
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transition: all 0.1s ease;
+  line-height: 1;
+}
+
+.joystick-axis-marker.axis-up {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.joystick-axis-marker.axis-down {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.joystick-axis-marker.axis-left {
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.joystick-axis-marker.axis-right {
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.joystick-axis-marker.active {
+  color: #38bdf8;
+  text-shadow: 0 0 8px #38bdf8;
+  transform-origin: center;
+}
+.joystick-axis-marker.axis-up.active { transform: translateX(-50%) scale(1.35); }
+.joystick-axis-marker.axis-down.active { transform: translateX(-50%) scale(1.35); }
+.joystick-axis-marker.axis-left.active { transform: translateY(-50%) scale(1.35); }
+.joystick-axis-marker.axis-right.active { transform: translateY(-50%) scale(1.35); }
+
+/* Draggable thumbstick knob */
+.joystick-knob {
+  position: absolute;
+  top: calc(50% - 22px);
+  left: calc(50% - 22px);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #3b82f6 0%, #1e3a8a 60%, #0f172a 100%);
+  border: 2px solid #f5a623;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), inset 0 0 8px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.25), box-shadow 0.15s ease;
+}
+
+.joystick-knob.dragging {
+  transition: none; /* zero latency when dragging */
+  box-shadow: 0 0 16px rgba(245, 166, 35, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.joystick-knob.key-moving {
+  transition: transform 0.08s ease-out;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.6);
+  border-color: #38bdf8;
+}
+
+.joystick-knob-core {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary-gold);
+  box-shadow: 0 0 6px var(--primary-gold);
+  pointer-events: none;
+}
+
+.joystick-knob.key-moving .joystick-knob-core {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+/* Action Buttons (Serang & Interaksi) - restored to original pixel style */
 .touch-actions {
   display: flex;
   gap: 10px;
   align-items: flex-end;
   pointer-events: auto;
+  user-select: none;
+  touch-action: none;
 }
 
 .action-btn {
@@ -937,30 +1075,173 @@ body, html {
   box-shadow: 2px 2px 0px #7f1d1d;
 }
 
-.action-btn:active {
+.action-btn:active,
+.action-btn.pressed {
   transform: translate(2px, 2px);
   box-shadow: none;
 }
 
 /* ========================================================
-   Responsive
+   RESPONSIVE DESIGN & MOBILE COLLISION FIXES
    ======================================================== */
-@media (max-width: 768px) {
-  #controls-hint { display: none; }
-  .hud-objective-banner {
-    max-width: 85%;
-    font-size: 0.4rem;
-    padding: 4px 10px;
+
+/* Desktop layout adjustments (controls visible with clear spacing) */
+@media (min-width: 769px) {
+  /* On desktop, keep actions to the left of minimap so they don't collide */
+  #game-controls .touch-actions {
+    margin-right: 140px;
   }
-  .modal-box {
-    padding: 16px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  #quest-log-panel { width: 180px; }
-  #minimap-container { width: 90px; height: 75px; }
 }
 
-@media (min-width: 769px) {
-  #mobile-controls { display: none; }
+/* Tablet & Mobile (width <= 820px): Fix all overlaps */
+@media (max-width: 820px) {
+  /* Hide keyboard hints on mobile screens */
+  #controls-hint {
+    display: none;
+  }
+  .action-btn-kbd {
+    display: none;
+  }
+
+  /* Wrap top HUD gracefully so Objective Banner moves to second row */
+  #game-hud {
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .hud-group {
+    gap: 4px;
+  }
+
+  .hud-card {
+    padding: 3px 6px;
+    font-size: 0.48rem;
+    gap: 4px;
+  }
+
+  .hud-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Objective banner sits below row 1, centered, never colliding with buttons */
+  .hud-objective-banner {
+    position: static;
+    transform: none;
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 4px;
+    font-size: 0.44rem;
+    padding: 4px 8px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Minimap: positioned at bottom-right stacked cleanly above action buttons, NEVER covering top direction banner */
+  #minimap-container {
+    bottom: 74px;
+    top: auto;
+    right: 14px;
+    width: 88px;
+    height: 72px;
+    z-index: 25;
+  }
+
+  /* Quest log slide-in */
+  #quest-log-panel {
+    top: 48px;
+    right: 8px;
+    width: 200px;
+    max-height: 60vh;
+    z-index: 60;
+  }
+
+  /* Mobile controls sizing & positioning */
+  #game-controls, #mobile-controls {
+    bottom: 14px;
+    padding: 0 14px;
+  }
+
+  .joystick-base {
+    width: 106px;
+    height: 106px;
+  }
+
+  .joystick-knob {
+    width: 40px;
+    height: 40px;
+    top: calc(50% - 20px);
+    left: calc(50% - 20px);
+  }
+
+  .touch-actions {
+    gap: 10px;
+    margin-right: 0 !important;
+  }
+
+  .action-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* Modals fitting comfortably on mobile screens */
+  .modal-box {
+    padding: 14px;
+    max-height: 88vh;
+    max-width: 94vw;
+    gap: 10px;
+  }
+
+  .quiz-options {
+    gap: 6px;
+  }
+
+  .quiz-option-btn {
+    padding: 8px 10px;
+    min-height: 42px;
+  }
 }
+
+/* Extra small screens (width <= 480px) */
+@media (max-width: 480px) {
+  .hud-grade-label {
+    display: none;
+  }
+
+  #hud-player-name {
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hud-hearts {
+    gap: 1px;
+  }
+
+  .hud-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  #minimap-container {
+    bottom: 68px;
+    top: auto;
+    right: 10px;
+    width: 80px;
+    height: 64px;
+  }
+
+  .joystick-base {
+    width: 98px;
+    height: 98px;
+  }
+
+  .action-btn {
+    width: 46px;
+    height: 46px;
+  }
+}
+

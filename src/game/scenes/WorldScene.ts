@@ -23,6 +23,7 @@ export class WorldScene extends Phaser.Scene {
   private portals: PortalDef[] = [];
   private isTransitioning: boolean = false;
   private isModalOpen: boolean = false;
+  private portalCooldownTimer: number = 0;
 
   // Heal drops (enemy defeat loot)
   public healDrops: Phaser.Physics.Arcade.Sprite[] = [];
@@ -61,10 +62,11 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  create(data: { startTileX?: number; startTileY?: number }): void {
+  create(data?: { startTileX?: number; startTileY?: number }): void {
     const areaData = AREA_MAPS[this.currentAreaKey];
     this.portals = areaData.portals;
     this.isTransitioning = false;
+    this.portalCooldownTimer = 500;
     this.npcs = [];
     this.interactables = [];
     this.enemies = [];
@@ -81,9 +83,9 @@ export class WorldScene extends Phaser.Scene {
     // Render map layout
     this.renderMapTiles(areaData);
 
-    // Spawn player
-    const startX = (data.startTileX ?? 12) * 32 + 16;
-    const startY = (data.startTileY ?? 10) * 32 + 16;
+    // Spawn player safely
+    const startX = ((data?.startTileX ?? 12)) * 32 + 16;
+    const startY = ((data?.startTileY ?? 10)) * 32 + 16;
     this.player = new Player(this, startX, startY);
     this.player.setDepth(10);
 
@@ -143,12 +145,11 @@ export class WorldScene extends Phaser.Scene {
     // Direction arrow singleton (created once, updated per-frame)
     this.initDirectionArrow();
 
-    // Keyboard shortcut B: Return to Base (Alun-Alun)
+    // Keyboard shortcut B: Return to Base (Alun-Alun) - clean existing listeners first
     const keyB = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+    keyB?.removeAllListeners();
     keyB?.on('down', () => {
-      if (!this.isModalOpen && !this.isTransitioning) {
-        this.returnToBase();
-      }
+      this.returnToBase();
     });
   }
 
@@ -334,6 +335,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.portalCooldownTimer > 0) {
+      this.portalCooldownTimer = Math.max(0, this.portalCooldownTimer - delta);
+    }
+
     if (this.isTransitioning) return;
 
     this.isModalOpen = this.dialogModal?.isOpen || this.quizModal?.isOpen || this.victoryModal?.isOpen;
@@ -921,7 +926,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private checkPortals(): void {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.portalCooldownTimer > 0) return;
 
     const px = this.player.x;
     const py = this.player.y;
@@ -943,6 +948,7 @@ export class WorldScene extends Phaser.Scene {
       if (isOverlapX && isOverlapY) {
         // Lock Forest portal if player does not have Forest Key yet
         if (portal.targetArea === 'FOREST' && !GameState.hasForestKey) {
+          this.portalCooldownTimer = 600;
           this.player.y = (portal.y - 1) * 32 + 16;
           this.player.setVelocity(0, 0);
           AudioSystem.playPlayerHurt();
@@ -967,20 +973,52 @@ export class WorldScene extends Phaser.Scene {
     this.clearDirectionArrows();
     AudioSystem.playInteract();
 
-    this.cameras.main.fadeOut(250, 0, 0, 0);
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+    // Close any open modals so input is never blocked in the next scene
+    this.dialogModal?.close();
+    this.quizModal?.close();
+    this.victoryModal?.close();
+
+    // Reset any running camera fade to prevent Phaser from ignoring fadeOut
+    this.cameras.main.resetFX();
+
+    let restarted = false;
+    const doRestart = () => {
+      if (restarted) return;
+      restarted = true;
       this.scene.restart({
         areaKey: targetArea,
         startTileX: targetTileX,
         startTileY: targetTileY
       });
+    };
+
+    // Safety fallback timeout: guarantees transition even if Phaser camera event drops
+    const fallbackTimer = setTimeout(doRestart, 320);
+
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      clearTimeout(fallbackTimer);
+      doRestart();
     });
+
+    this.cameras.main.fadeOut(250, 0, 0, 0);
   }
 
   public returnToBase(): void {
-    if (this.isTransitioning) return;
+    // Unconditionally force-release any stuck transition flag so Home is a reliable rescue hatch
+    this.isTransitioning = false;
+    this.portalCooldownTimer = 600;
     this.clearDirectionArrows();
     AudioSystem.playInteract();
+
+    // Close all modals so canMove is always restored
+    this.dialogModal?.close();
+    this.quizModal?.close();
+    this.victoryModal?.close();
+
+    // Reset touch controls
+    if (this.touchControls) {
+      this.touchControls.reset();
+    }
 
     // Reset player state to prevent stuck/glitched states
     if (this.player) {

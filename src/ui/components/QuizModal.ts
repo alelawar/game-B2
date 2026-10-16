@@ -61,6 +61,13 @@ export class QuizModal {
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen) return;
 
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.close();
+        if (this.onFinishCallback) this.onFinishCallback();
+        return;
+      }
+
       if (!this.answeredCurrent) {
         if (e.key === '1' || e.key === 'a' || e.key === 'A') this.handleOptionSelect(0);
         else if (e.key === '2' || e.key === 'b' || e.key === 'B') this.handleOptionSelect(1);

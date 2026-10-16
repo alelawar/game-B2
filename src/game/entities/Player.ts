@@ -9,6 +9,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   public isAttacking: boolean = false;
   public isInvulnerable: boolean = false;
   private attackHitbox: Phaser.GameObjects.Rectangle | null = null;
+  private attackStartTime: number = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: {
     w: Phaser.Input.Keyboard.Key;
@@ -56,9 +57,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     let attackTriggered = false;
     let interactTriggered = false;
 
-    // Safety watchdog: if isAttacking but hitbox is already gone, release attacking lock
-    if (this.isAttacking && !this.attackHitbox) {
-      this.isAttacking = false;
+    // Safety watchdog: if isAttacking exceeds 250ms or hitbox is gone, force release attack lock
+    if (this.isAttacking) {
+      if (!this.attackHitbox || (this.scene.time.now - this.attackStartTime > 250)) {
+        if (this.attackHitbox) {
+          try { this.attackHitbox.destroy(); } catch { /* ignore */ }
+          this.attackHitbox = null;
+        }
+        this.isAttacking = false;
+      }
     }
 
     if (!canMove || this.isAttacking) {
@@ -66,36 +73,61 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return { attackTriggered, interactTriggered };
     }
 
-    const up = this.cursors?.up.isDown || this.wasdKeys?.w.isDown || this.virtualInput?.up;
-    const down = this.cursors?.down.isDown || this.wasdKeys?.s.isDown || this.virtualInput?.down;
-    const left = this.cursors?.left.isDown || this.wasdKeys?.a.isDown || this.virtualInput?.left;
-    const right = this.cursors?.right.isDown || this.wasdKeys?.d.isDown || this.virtualInput?.right;
-
     let vx = 0;
     let vy = 0;
 
-    if (left) {
-      vx -= this.speed;
-      this.facing = 'left';
-      this.setFlipX(true);
-    } else if (right) {
-      vx += this.speed;
-      this.facing = 'right';
-      this.setFlipX(false);
-    }
+    const analogVec = this.virtualInput?.vector;
+    const hasAnalog = analogVec && (Math.abs(analogVec.x) > 0.05 || Math.abs(analogVec.y) > 0.05);
 
-    if (up) {
-      vy -= this.speed;
-      this.facing = 'up';
-    } else if (down) {
-      vy += this.speed;
-      this.facing = 'down';
-    }
+    if (hasAnalog && analogVec) {
+      vx = analogVec.x * this.speed;
+      vy = analogVec.y * this.speed;
 
-    // Normalize diagonal speed
-    if (vx !== 0 && vy !== 0) {
-      vx *= 0.7071;
-      vy *= 0.7071;
+      // Determine facing direction from analog vector
+      if (Math.abs(vx) >= Math.abs(vy)) {
+        if (vx < -5) {
+          this.facing = 'left';
+          this.setFlipX(true);
+        } else if (vx > 5) {
+          this.facing = 'right';
+          this.setFlipX(false);
+        }
+      } else {
+        if (vy < -5) {
+          this.facing = 'up';
+        } else if (vy > 5) {
+          this.facing = 'down';
+        }
+      }
+    } else {
+      const up = this.cursors?.up.isDown || this.wasdKeys?.w.isDown || this.virtualInput?.up;
+      const down = this.cursors?.down.isDown || this.wasdKeys?.s.isDown || this.virtualInput?.down;
+      const left = this.cursors?.left.isDown || this.wasdKeys?.a.isDown || this.virtualInput?.left;
+      const right = this.cursors?.right.isDown || this.wasdKeys?.d.isDown || this.virtualInput?.right;
+
+      if (left) {
+        vx -= this.speed;
+        this.facing = 'left';
+        this.setFlipX(true);
+      } else if (right) {
+        vx += this.speed;
+        this.facing = 'right';
+        this.setFlipX(false);
+      }
+
+      if (up) {
+        vy -= this.speed;
+        this.facing = 'up';
+      } else if (down) {
+        vy += this.speed;
+        this.facing = 'down';
+      }
+
+      // Normalize diagonal speed
+      if (vx !== 0 && vy !== 0) {
+        vx *= 0.7071;
+        vy *= 0.7071;
+      }
     }
 
     this.setVelocity(vx, vy);
@@ -133,6 +165,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   public executeAttack(): void {
     if (this.isAttacking) return;
     this.isAttacking = true;
+    this.attackStartTime = this.scene.time.now;
     this.setVelocity(0, 0);
 
     AudioSystem.playSwing();

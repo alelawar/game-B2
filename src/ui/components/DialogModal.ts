@@ -13,6 +13,7 @@ export class DialogModal {
   private container: HTMLElement;
   private onContinueCallback?: () => void;
   public isOpen: boolean = false;
+  private openTimestamp: number = 0;
 
   constructor() {
     this.container = document.createElement('div');
@@ -56,7 +57,21 @@ export class DialogModal {
     });
 
     window.addEventListener('keydown', (e) => {
-      if (this.isOpen && (e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ')) {
+      if (!this.isOpen) return;
+
+      // Allow Escape to dismiss immediately
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.close();
+        return;
+      }
+
+      // Ignore input within 180ms of opening to avoid instant skip from the interaction keypress
+      if (Date.now() - this.openTimestamp < 180) {
+        return;
+      }
+
+      if (e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') {
         e.preventDefault();
         this.close();
         if (this.onContinueCallback) {
@@ -68,6 +83,7 @@ export class DialogModal {
 
   public show(data: DialogData): void {
     this.isOpen = true;
+    this.openTimestamp = Date.now();
     this.onContinueCallback = data.onContinue;
 
     const avatarEl = this.container.querySelector('#dialog-avatar') as HTMLElement;
