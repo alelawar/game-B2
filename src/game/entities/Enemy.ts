@@ -306,17 +306,17 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private spawnHealDrop(): void {
-    // Draw a tiny green cross heal item
-    const { canvas, ctx } = this.makeCanvas(12, 12);
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(4, 0, 4, 12);
-    ctx.fillRect(0, 4, 12, 4);
-    ctx.fillStyle = '#86efac';
-    ctx.fillRect(5, 1, 2, 10);
-    ctx.fillRect(1, 5, 10, 2);
-
-    const texKey = `heal_drop_${Date.now()}`;
-    this.scene.textures.addCanvas(texKey, canvas);
+    const texKey = 'item_heal_drop';
+    if (!this.scene.textures.exists(texKey)) {
+      const { canvas, ctx } = this.makeCanvas(12, 12);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(4, 0, 4, 12);
+      ctx.fillRect(0, 4, 12, 4);
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(5, 1, 2, 10);
+      ctx.fillRect(1, 5, 10, 2);
+      this.scene.textures.addCanvas(texKey, canvas);
+    }
 
     const drop = this.scene.physics.add.sprite(this.x, this.y, texKey)
       .setDepth(7)

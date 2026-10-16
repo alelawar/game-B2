@@ -27,8 +27,9 @@ export class WorldScene extends Phaser.Scene {
   // Heal drops (enemy defeat loot)
   public healDrops: Phaser.Physics.Arcade.Sprite[] = [];
 
-  // Direction arrow graphics (Phaser scene-space, always visible on screen edge)
-  private dirArrows: { graphic: Phaser.GameObjects.Triangle; label: Phaser.GameObjects.Text }[] = [];
+  // Direction arrow graphics (persistent single instances to prevent per-frame GC freezes)
+  private dirArrowGraphic?: Phaser.GameObjects.Triangle;
+  private dirArrowLabel?: Phaser.GameObjects.Text;
 
   // Target indicator marker for closest enemy in combat range
   private enemyTargetRing?: Phaser.GameObjects.Arc;
@@ -126,6 +127,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Enemy target markers
     this.initEnemyTargetMarkers();
+
+    // Direction arrow singleton (created once, updated per-frame)
+    this.initDirectionArrow();
   }
 
   private initUI(): void {
@@ -292,11 +296,11 @@ export class WorldScene extends Phaser.Scene {
 
     const { attackTriggered, interactTriggered } = this.player.updatePlayer(canMove);
 
-    // Update enemies with delta time for pattern timing
-    this.updateEnemiesCombat(attackTriggered, delta);
-
-    // Heal drop pickup check
-    this.checkHealDropPickups();
+    // Update enemies with delta time for pattern timing (only when modal is closed)
+    if (!this.isModalOpen) {
+      this.updateEnemiesCombat(attackTriggered, delta);
+      this.checkHealDropPickups();
+    }
 
     // Interaction range check
     this.checkInteractionRange(interactTriggered);
@@ -389,10 +393,32 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  private initDirectionArrow(): void {
+    const arrowSize = 12;
+    this.dirArrowGraphic = this.add.triangle(
+      0, 0,
+      0, -arrowSize,
+      arrowSize * 0.7, arrowSize * 0.7,
+      -arrowSize * 0.7, arrowSize * 0.7,
+      0xf5a623, 0.95
+    ).setDepth(50).setScrollFactor(0).setVisible(false);
+    this.dirArrowGraphic.setStrokeStyle(1.5, 0x7a5311, 0.8);
+
+    this.dirArrowLabel = this.add.text(0, 0, '', {
+      fontFamily: "'Press Start 2P', monospace",
+      fontSize: '5px',
+      color: '#fef08a',
+      stroke: '#000',
+      strokeThickness: 2
+    }).setDepth(51).setScrollFactor(0).setOrigin(0.5).setVisible(false);
+  }
+
   /**
-   * Draw a single arrow on the screen edge pointing toward the current quest target.
+   * Update direction arrow toward current quest target (zero GC allocation).
    */
   private updateDirectionArrow(): void {
+    if (!this.dirArrowGraphic || !this.dirArrowLabel) return;
+
     if (this.isModalOpen) {
       this.clearDirectionArrows();
       return;
@@ -412,7 +438,7 @@ export class WorldScene extends Phaser.Scene {
     const dy = target.y - camCenterY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Only show arrow when target is off-screen (dist > ~150 world units)
+    // Only show arrow when target is off-screen (dist > 120 world units)
     if (dist < 120) {
       this.clearDirectionArrows();
       return;
@@ -424,13 +450,11 @@ export class WorldScene extends Phaser.Scene {
     const hw = cam.width / (2 * cam.zoom) - padding;
     const hh = cam.height / (2 * cam.zoom) - padding;
 
-    // Clamp to visible bounds (in world coords relative to cam center)
     let ex = camCenterX + Math.cos(angle) * hw;
     let ey = camCenterY + Math.sin(angle) * hh;
     const cos = Math.abs(Math.cos(angle));
     const sin = Math.abs(Math.sin(angle));
     if (cos * hh > sin * hw) {
-      // Hit left/right edge
       const scale = hw / Math.abs(Math.cos(angle));
       ex = camCenterX + Math.cos(angle) * scale;
       ey = camCenterY + Math.sin(angle) * scale;
@@ -439,40 +463,25 @@ export class WorldScene extends Phaser.Scene {
     // Convert to screen coordinates
     const screenX = (ex - cam.scrollX) * cam.zoom;
     const screenY = (ey - cam.scrollY) * cam.zoom;
-
-    // (Re)create the arrow graphics in camera-space (fixed to screen)
-    this.clearDirectionArrows();
-
     const arrowSize = 12;
-    // Triangle pointing in direction of target
-    const tri = this.add.triangle(
-      screenX, screenY,
-      0, -arrowSize,
-      arrowSize * 0.7, arrowSize * 0.7,
-      -arrowSize * 0.7, arrowSize * 0.7,
-      0xf5a623, 0.9
-    ).setDepth(50).setScrollFactor(0).setRotation(angle + Math.PI / 2);
 
-    tri.setStrokeStyle(1.5, 0x7a5311, 0.8);
+    this.dirArrowGraphic
+      .setPosition(screenX, screenY)
+      .setRotation(angle + Math.PI / 2)
+      .setVisible(true);
 
-    // Small label
-    const label = this.add.text(screenX, screenY + arrowSize + 8, this.getQuestTargetLabel(), {
-      fontFamily: "'Press Start 2P', monospace",
-      fontSize: '5px',
-      color: '#fef08a',
-      stroke: '#000',
-      strokeThickness: 2
-    }).setDepth(51).setScrollFactor(0).setOrigin(0.5);
-
-    this.dirArrows.push({ graphic: tri, label });
+    const targetLabel = this.getQuestTargetLabel();
+    if (this.dirArrowLabel.text !== targetLabel) {
+      this.dirArrowLabel.setText(targetLabel);
+    }
+    this.dirArrowLabel
+      .setPosition(screenX, screenY + arrowSize + 8)
+      .setVisible(true);
   }
 
   private clearDirectionArrows(): void {
-    for (const { graphic, label } of this.dirArrows) {
-      try { graphic.destroy(); } catch { /* */ }
-      try { label.destroy(); } catch { /* */ }
-    }
-    this.dirArrows = [];
+    this.dirArrowGraphic?.setVisible(false);
+    this.dirArrowLabel?.setVisible(false);
   }
 
   private getQuestTargetPosition(): { x: number; y: number } | null {

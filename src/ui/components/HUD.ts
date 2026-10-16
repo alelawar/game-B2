@@ -271,13 +271,17 @@ export class HUD {
     ctx.lineWidth = 1;
     ctx.strokeRect(playerTileX * tw - 1, playerTileY * th - 1, tw + 3, th + 3);
 
-    // Area label
-    const labelEl = this.minimapContainer.querySelector('.minimap-label');
-    if (labelEl) labelEl.remove();
-    const label = document.createElement('div');
-    label.className = 'minimap-label';
-    label.textContent = area.name.split('(')[0].trim();
-    this.minimapContainer.appendChild(label);
+    // Area label (reuse single DOM node)
+    let labelEl = this.minimapContainer.querySelector('.minimap-label') as HTMLDivElement;
+    if (!labelEl) {
+      labelEl = document.createElement('div');
+      labelEl.className = 'minimap-label';
+      this.minimapContainer.appendChild(labelEl);
+    }
+    const cleanName = area.name.split('(')[0].trim();
+    if (labelEl.textContent !== cleanName) {
+      labelEl.textContent = cleanName;
+    }
   }
 
   private isNPCQuestTarget(npcId: string): boolean {
