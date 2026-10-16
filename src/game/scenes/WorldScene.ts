@@ -24,6 +24,12 @@ export class WorldScene extends Phaser.Scene {
   private isTransitioning: boolean = false;
   private isModalOpen: boolean = false;
 
+  // Heal drops (enemy defeat loot)
+  public healDrops: Phaser.Physics.Arcade.Sprite[] = [];
+
+  // Direction arrow graphics (Phaser scene-space, always visible on screen edge)
+  private dirArrows: { graphic: Phaser.GameObjects.Triangle; label: Phaser.GameObjects.Text }[] = [];
+
   // UI layer references
   public hud!: HUD;
   public dialogModal!: DialogModal;
@@ -32,6 +38,10 @@ export class WorldScene extends Phaser.Scene {
   public touchControls!: TouchControls;
 
   private closestTarget: { type: 'npc' | 'object' | 'portal'; entity: NPC | Interactable | PortalDef } | null = null;
+
+  // Minimap update throttle
+  private minimapTick: number = 0;
+  private readonly MINIMAP_UPDATE_MS = 200;
 
   constructor() {
     super('WorldScene');
@@ -50,34 +60,35 @@ export class WorldScene extends Phaser.Scene {
     this.npcs = [];
     this.interactables = [];
     this.enemies = [];
+    this.healDrops = [];
 
-    // Set world physics bounds
+    // World physics bounds
     const worldW = areaData.widthInTiles * 32;
     const worldH = areaData.heightInTiles * 32;
     this.physics.world.setBounds(0, 0, worldW, worldH);
 
-    // Build Obstacles Group
+    // Obstacles group
     this.obstaclesGroup = this.physics.add.staticGroup();
 
-    // Render Map Layout
+    // Render map layout
     this.renderMapTiles(areaData);
 
-    // Spawn Player
+    // Spawn player
     const startX = (data.startTileX ?? 12) * 32 + 16;
     const startY = (data.startTileY ?? 10) * 32 + 16;
     this.player = new Player(this, startX, startY);
     this.player.setDepth(10);
 
-    // Camera Configuration
+    // Camera
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setZoom(1.5);
     this.cameras.main.fadeIn(300, 0, 0, 0);
 
-    // Add Player-Obstacle collision
+    // Colliders
     this.physics.add.collider(this.player, this.obstaclesGroup);
 
-    // Spawn NPCs
+    // NPCs
     areaData.npcs.forEach(def => {
       const npc = new NPC(this, def);
       npc.setDepth(9);
@@ -85,7 +96,7 @@ export class WorldScene extends Phaser.Scene {
       this.physics.add.collider(this.player, npc);
     });
 
-    // Spawn Interactables
+    // Interactables
     areaData.objects.forEach(def => {
       const obj = new Interactable(this, def);
       obj.setDepth(8);
@@ -93,10 +104,9 @@ export class WorldScene extends Phaser.Scene {
       this.physics.add.collider(this.player, obj);
     });
 
-    // Spawn Enemies (e.g. in Forest)
+    // Enemies
     areaData.enemies.forEach(def => {
       const enemy = new Enemy(this, def);
-      enemy.setDepth(9);
       this.enemies.push(enemy);
       this.physics.add.collider(enemy, this.obstaclesGroup);
     });
@@ -104,14 +114,14 @@ export class WorldScene extends Phaser.Scene {
     // Connect UI singletons
     this.initUI();
 
-    // Pass touch controls to player
+    // Touch controls
     this.player.setVirtualInput(this.touchControls.state);
+
+    // Quest highlight rings on active NPCs
+    this.addQuestHighlights();
   }
 
   private initUI(): void {
-    const appEl = document.getElementById('app-container');
-    if (!appEl) return;
-
     if (!this.hud) {
       this.hud = new HUD(() => this.restartGame());
     }
@@ -138,11 +148,9 @@ export class WorldScene extends Phaser.Scene {
         const px = x * 32 + 16;
         const py = y * 32 + 16;
 
-        // Base ground tile
         const groundKey = char === 'P' ? 'tile_path' : areaData.defaultTile;
         this.add.image(px, py, groundKey).setDepth(1);
 
-        // Decorator / Obstacle tiles
         if (char === 'W') {
           const wallKey = this.currentAreaKey === 'CASTLE' ? 'tile_castle_wall' : 'tile_fence';
           const wall = this.obstaclesGroup.create(px, py, wallKey) as Phaser.Physics.Arcade.Sprite;
@@ -164,7 +172,62 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  update(): void {
+  /**
+   * Draw a glowing ring under quest-active NPCs to help player navigate.
+   */
+  private addQuestHighlights(): void {
+    const stage = GameState.questStage;
+
+    this.npcs.forEach(npc => {
+      let isTarget = false;
+      if (npc.dataDef.id === 'npc_princess' &&
+          (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS)) {
+        isTarget = true;
+      }
+      if (npc.dataDef.id === 'npc_gatekeeper' && GameState.hasForestKey &&
+          stage <= QuestStage.GATE_CHALLENGE) {
+        isTarget = true;
+      }
+
+      if (isTarget) {
+        const ring = this.add.circle(npc.x, npc.y, 18, 0xf5a623, 0.15)
+          .setStrokeStyle(2, 0xf5a623, 0.8)
+          .setDepth(7);
+        this.tweens.add({
+          targets: ring,
+          scaleX: 1.25,
+          scaleY: 1.25,
+          alpha: 0.05,
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+
+    // Highlight crown altar in forest if it's the current goal
+    if (stage === QuestStage.RETRIEVE_CROWN || stage === QuestStage.FOREST_EXPLORATION) {
+      this.interactables.forEach(obj => {
+        if (obj.dataDef.isCrownAltar) {
+          const glow = this.add.circle(obj.x, obj.y, 20, 0xfbbf24, 0.2)
+            .setStrokeStyle(2, 0xfbbf24, 0.9)
+            .setDepth(7);
+          this.tweens.add({
+            targets: glow,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            alpha: 0.05,
+            duration: 700,
+            yoyo: true,
+            repeat: -1
+          });
+        }
+      });
+    }
+  }
+
+  update(_time: number, delta: number): void {
     if (this.isTransitioning) return;
 
     this.isModalOpen = this.dialogModal?.isOpen || this.quizModal?.isOpen || this.victoryModal?.isOpen;
@@ -172,17 +235,32 @@ export class WorldScene extends Phaser.Scene {
 
     const { attackTriggered, interactTriggered } = this.player.updatePlayer(canMove);
 
-    // Update Enemies AI & Combat
-    this.updateEnemiesCombat(attackTriggered);
+    // Update enemies with delta time for pattern timing
+    this.updateEnemiesCombat(attackTriggered, delta);
 
-    // Check interaction range
+    // Heal drop pickup check
+    this.checkHealDropPickups();
+
+    // Interaction range check
     this.checkInteractionRange(interactTriggered);
 
-    // Check Area Portals
+    // Portal check
     this.checkPortals();
+
+    // Minimap (throttled)
+    this.minimapTick += delta;
+    if (this.minimapTick >= this.MINIMAP_UPDATE_MS) {
+      this.minimapTick = 0;
+      const tileX = Math.floor(this.player.x / 32);
+      const tileY = Math.floor(this.player.y / 32);
+      this.hud?.updateMinimap(this.currentAreaKey, tileX, tileY);
+    }
+
+    // Direction arrow to quest target
+    this.updateDirectionArrow();
   }
 
-  private updateEnemiesCombat(attackTriggered: boolean): void {
+  private updateEnemiesCombat(attackTriggered: boolean, delta: number): void {
     const hitbox = this.player.getAttackHitbox();
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -192,16 +270,16 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
 
-      enemy.updateEnemy(this.player);
+      enemy.updateEnemy(this.player, delta);
 
-      // Check player sword attack hitting enemy
+      // Player sword → enemy
       if (hitbox && !enemy.getIsDead()) {
         if (this.physics.overlap(hitbox, enemy)) {
           enemy.takeDamage(this.player.x, this.player.y);
         }
       }
 
-      // Check enemy touching player
+      // Enemy touches player
       if (!enemy.getIsDead() && !this.player.isInvulnerable) {
         if (this.physics.overlap(this.player, enemy)) {
           const isDead = this.player.takeDamage(enemy.x, enemy.y);
@@ -213,12 +291,178 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  private checkHealDropPickups(): void {
+    for (let i = this.healDrops.length - 1; i >= 0; i--) {
+      const drop = this.healDrops[i];
+      if (!drop.active) {
+        this.healDrops.splice(i, 1);
+        continue;
+      }
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, drop.x, drop.y);
+      if (dist < 24) {
+        const amount = (drop as unknown as { healAmount: number }).healAmount || 1;
+        GameState.healPlayer(amount);
+        AudioSystem.playCorrect();
+
+        // Heal number popup
+        const healText = this.add.text(this.player.x, this.player.y - 16, `+${amount}`, {
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: '8px',
+          color: '#22c55e',
+          stroke: '#000',
+          strokeThickness: 2
+        }).setDepth(30).setOrigin(0.5);
+        this.tweens.add({
+          targets: healText,
+          y: healText.y - 20,
+          alpha: 0,
+          duration: 600,
+          onComplete: () => healText.destroy()
+        });
+
+        drop.destroy();
+        this.healDrops.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Draw a single arrow on the screen edge pointing toward the current quest target.
+   */
+  private updateDirectionArrow(): void {
+    if (this.isModalOpen) {
+      this.clearDirectionArrows();
+      return;
+    }
+
+    const target = this.getQuestTargetPosition();
+    if (!target) {
+      this.clearDirectionArrows();
+      return;
+    }
+
+    const cam = this.cameras.main;
+    const camCenterX = cam.scrollX + cam.width / (2 * cam.zoom);
+    const camCenterY = cam.scrollY + cam.height / (2 * cam.zoom);
+
+    const dx = target.x - camCenterX;
+    const dy = target.y - camCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Only show arrow when target is off-screen (dist > ~150 world units)
+    if (dist < 120) {
+      this.clearDirectionArrows();
+      return;
+    }
+
+    // Compute screen edge intersection
+    const angle = Math.atan2(dy, dx);
+    const padding = 38;
+    const hw = cam.width / (2 * cam.zoom) - padding;
+    const hh = cam.height / (2 * cam.zoom) - padding;
+
+    // Clamp to visible bounds (in world coords relative to cam center)
+    let ex = camCenterX + Math.cos(angle) * hw;
+    let ey = camCenterY + Math.sin(angle) * hh;
+    const cos = Math.abs(Math.cos(angle));
+    const sin = Math.abs(Math.sin(angle));
+    if (cos * hh > sin * hw) {
+      // Hit left/right edge
+      const scale = hw / Math.abs(Math.cos(angle));
+      ex = camCenterX + Math.cos(angle) * scale;
+      ey = camCenterY + Math.sin(angle) * scale;
+    }
+
+    // Convert to screen coordinates
+    const screenX = (ex - cam.scrollX) * cam.zoom;
+    const screenY = (ey - cam.scrollY) * cam.zoom;
+
+    // (Re)create the arrow graphics in camera-space (fixed to screen)
+    this.clearDirectionArrows();
+
+    const arrowSize = 12;
+    // Triangle pointing in direction of target
+    const tri = this.add.triangle(
+      screenX, screenY,
+      0, -arrowSize,
+      arrowSize * 0.7, arrowSize * 0.7,
+      -arrowSize * 0.7, arrowSize * 0.7,
+      0xf5a623, 0.9
+    ).setDepth(50).setScrollFactor(0).setRotation(angle + Math.PI / 2);
+
+    tri.setStrokeStyle(1.5, 0x7a5311, 0.8);
+
+    // Small label
+    const label = this.add.text(screenX, screenY + arrowSize + 8, this.getQuestTargetLabel(), {
+      fontFamily: "'Press Start 2P', monospace",
+      fontSize: '5px',
+      color: '#fef08a',
+      stroke: '#000',
+      strokeThickness: 2
+    }).setDepth(51).setScrollFactor(0).setOrigin(0.5);
+
+    this.dirArrows.push({ graphic: tri, label });
+  }
+
+  private clearDirectionArrows(): void {
+    for (const { graphic, label } of this.dirArrows) {
+      try { graphic.destroy(); } catch { /* */ }
+      try { label.destroy(); } catch { /* */ }
+    }
+    this.dirArrows = [];
+  }
+
+  private getQuestTargetPosition(): { x: number; y: number } | null {
+    const stage = GameState.questStage;
+
+    if (this.currentAreaKey === 'VILLAGE') {
+      // Point to princess or gatekeeper NPC
+      for (const npc of this.npcs) {
+        if (npc.dataDef.id === 'npc_princess' &&
+            (stage === QuestStage.TALK_TO_PRINCESS || stage === QuestStage.RETURN_TO_PRINCESS)) {
+          return { x: npc.x, y: npc.y };
+        }
+        if (npc.dataDef.id === 'npc_gatekeeper' &&
+            GameState.hasForestKey && stage <= QuestStage.GATE_CHALLENGE) {
+          return { x: npc.x, y: npc.y };
+        }
+      }
+
+      // Point to area portals based on quest
+      if (stage === QuestStage.INVESTIGATE_AREAS && !GameState.hasForestKey) {
+        // Point east toward Garden portal
+        const gardenPortal = this.portals.find(p => p.targetArea === 'GARDEN');
+        if (gardenPortal) return { x: gardenPortal.x * 32 + 16, y: gardenPortal.y * 32 + 16 };
+      }
+    }
+
+    if (this.currentAreaKey === 'FOREST') {
+      // Point to crown altar
+      if (stage === QuestStage.RETRIEVE_CROWN || stage === QuestStage.FOREST_EXPLORATION) {
+        const altar = this.interactables.find(o => o.dataDef.isCrownAltar);
+        if (altar) return { x: altar.x, y: altar.y };
+      }
+    }
+
+    return null;
+  }
+
+  private getQuestTargetLabel(): string {
+    const stage = GameState.questStage;
+    if (stage === QuestStage.TALK_TO_PRINCESS) return 'Putri';
+    if (stage === QuestStage.RETURN_TO_PRINCESS) return 'Putri';
+    if (stage === QuestStage.RETRIEVE_CROWN) return 'Mahkota';
+    if (stage === QuestStage.FOREST_EXPLORATION) return 'Altar';
+    if (GameState.hasForestKey) return 'Penjaga';
+    return 'Taman';
+  }
+
   private handlePlayerDefeated(): void {
     this.dialogModal.show({
       title: 'Prajurit Terluka!',
-      avatarIcon: '❤️‍🩹',
+      avatarIcon: 'heal',
       message: 'Kamu kehabisan tenaga dalam pertempuran. Tabib istana telah merawatmu kembali ke kondisi prima di Alun-Alun!',
-      buttonText: 'Bangkit Kembali 🛡️',
+      buttonText: 'Bangkit Kembali',
       onContinue: () => {
         GameState.respawnPlayer();
         this.transitionToArea('VILLAGE', 12, 10);
@@ -235,7 +479,6 @@ export class WorldScene extends Phaser.Scene {
     let nearestDist = 52;
     this.closestTarget = null;
 
-    // Check NPCs
     for (const npc of this.npcs) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.x, npc.y);
       if (dist < nearestDist) {
@@ -244,7 +487,6 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Check Interactables
     for (const obj of this.interactables) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, obj.x, obj.y);
       if (dist < nearestDist) {
@@ -254,15 +496,14 @@ export class WorldScene extends Phaser.Scene {
     }
 
     if (this.closestTarget) {
-      // Calculate screen position for HUD prompt bubble
       const cam = this.cameras.main;
       const targetEntity = this.closestTarget.entity as Phaser.GameObjects.Sprite;
       const screenX = (targetEntity.x - cam.scrollX) * cam.zoom;
       const screenY = (targetEntity.y - cam.scrollY - 20) * cam.zoom;
 
-      let promptText = 'Tekan [E] untuk Bicara';
+      let promptText = 'Tekan [E] Bicara';
       if (this.closestTarget.type === 'object') {
-        promptText = (this.closestTarget.entity as Interactable).dataDef.promptText || 'Tekan [E] untuk Periksa';
+        promptText = (this.closestTarget.entity as Interactable).dataDef.promptText || 'Tekan [E] Periksa';
       }
 
       this.hud?.showInteractionPrompt(screenX, screenY, promptText);
@@ -279,30 +520,24 @@ export class WorldScene extends Phaser.Scene {
     if (!this.closestTarget) return;
 
     if (this.closestTarget.type === 'npc') {
-      const npc = this.closestTarget.entity as NPC;
-      this.handleNPCInteraction(npc);
+      this.handleNPCInteraction(this.closestTarget.entity as NPC);
     } else if (this.closestTarget.type === 'object') {
-      const obj = this.closestTarget.entity as Interactable;
-      this.handleObjectInteraction(obj);
+      this.handleObjectInteraction(this.closestTarget.entity as Interactable);
     }
   }
 
   private handleNPCInteraction(npc: NPC): void {
     const def = npc.dataDef;
 
-    // Special handling for Princess
     if (def.id === 'npc_princess') {
       if (GameState.hasCrown) {
-        // Quest Completed!
         GameState.completeQuest();
         this.dialogModal.show({
           title: def.name,
           avatarIcon: def.avatarIcon,
           message: `${GameState.playerName}! Kamu berhasil membawa kembali Mahkota Bintang! Kerajaan kita terselamatkan dan Festival Bintang akan segera dimulai! Terima kasih prajurit hebat!`,
-          buttonText: 'Rayakan Kemenangan! 🎉',
-          onContinue: () => {
-            this.victoryModal.show();
-          }
+          buttonText: 'Rayakan Kemenangan!',
+          onContinue: () => { this.victoryModal.show(); }
         });
       } else if (GameState.questStage === QuestStage.TALK_TO_PRINCESS) {
         GameState.setQuestStage(QuestStage.INVESTIGATE_AREAS);
@@ -310,20 +545,19 @@ export class WorldScene extends Phaser.Scene {
           title: def.name,
           avatarIcon: def.avatarIcon,
           message: `Selamat datang, Prajurit ${GameState.playerName}! Mahkota Bintang hilang dicuri monster di Hutan Rahasia. Cari petunjuk dari warga kerajaan di Taman (Timur) dan Dapur Istana (Utara) untuk menemukan Kunci Hutan!`,
-          buttonText: 'Siap Laksanakan! ⚔️'
+          buttonText: 'Siap Laksanakan!'
         });
       } else {
         this.dialogModal.show({
           title: def.name,
           avatarIcon: def.avatarIcon,
           message: `Semangat Prajurit ${GameState.playerName}! Temukan Mahkota Bintang di altar suci Hutan Rahasia dan bawa kembali kepadaku sebelum Festival dimulai!`,
-          buttonText: 'Lanjutkan Petualangan ➡️'
+          buttonText: 'Lanjutkan Petualangan'
         });
       }
       return;
     }
 
-    // Standard NPC with or without educational question
     if (def.questionId) {
       const question = getQuestionById(def.questionId);
       if (question) {
@@ -331,10 +565,8 @@ export class WorldScene extends Phaser.Scene {
           title: `${def.name} (${def.title})`,
           avatarIcon: def.avatarIcon,
           message: def.dialogueIntro,
-          buttonText: 'Jawab Pertanyaan 📝',
-          onContinue: () => {
-            this.quizModal.show(question);
-          }
+          buttonText: 'Jawab Pertanyaan',
+          onContinue: () => { this.quizModal.show(question); }
         });
         return;
       }
@@ -350,63 +582,56 @@ export class WorldScene extends Phaser.Scene {
   private handleObjectInteraction(obj: Interactable): void {
     const def = obj.dataDef;
 
-    // Special handling for Crown Altar
     if (def.isCrownAltar) {
       if (GameState.hasCrown) {
         this.dialogModal.show({
           title: 'Altar Mahkota Bintang',
-          avatarIcon: '✨',
+          avatarIcon: 'altar',
           message: 'Altar batu suci. Mahkota Bintang telah kamu ambil! Segera bawa ke Putri Cahaya di Alun-Alun Istana!'
         });
         return;
       }
 
-      // Check if monsters or tablet challenge are met
       if (!GameState.isQuestionAnswered('q_present_continuous')) {
         this.dialogModal.show({
           title: 'Altar Terkunci!',
-          avatarIcon: '🔒',
+          avatarIcon: 'lock',
           message: 'Mahkota Bintang dilindungi perisai sihir ungu kuno. Kamu harus membaca dan memecahkan mantra di Prasasti Kuno di dekat altar terlebih dahulu!'
         });
         return;
       }
 
-      // Obtain crown!
       GameState.obtainCrown();
       AudioSystem.playCrownFound();
       this.dialogModal.show({
-        title: '👑 MAHKOTA BINTANG DITEMUKAN!',
-        avatarIcon: '🌟',
+        title: 'MAHKOTA BINTANG DITEMUKAN!',
+        avatarIcon: 'crown',
         message: 'Luar biasa! Kamu berhasil mengangkat Mahkota Bintang yang bersinar terang! Sekarang, kembalikan mahkota ini kepada Putri Cahaya di Alun-Alun Istana!',
-        buttonText: 'Bawa Kembali ke Putri 👑'
+        buttonText: 'Bawa Kembali ke Putri'
       });
       return;
     }
 
-    // Fountain health recovery object
     if (def.id === 'obj_fountain_village') {
       GameState.healPlayer(5);
       AudioSystem.playCorrect();
       this.dialogModal.show({
         title: def.name,
-        avatarIcon: '⛲',
-        message: 'Kamu meminum air mancur yang sejuk dan segar. Seluruh staminamu pulih kembali (Darah penuh: ❤️❤️❤️❤️❤️)!'
+        avatarIcon: 'fountain',
+        message: 'Kamu meminum air mancur yang sejuk dan segar. Seluruh staminamu pulih kembali!'
       });
       return;
     }
 
-    // Objects with educational questions (Fruit basket, cat, desk, sink, sofa, tablet)
     if (def.questionId) {
       const question = getQuestionById(def.questionId);
       if (question) {
         this.dialogModal.show({
           title: def.name,
-          avatarIcon: '🔍',
+          avatarIcon: 'search',
           message: def.examineText,
-          buttonText: 'Pecahkan Teka-Teki 📝',
-          onContinue: () => {
-            this.quizModal.show(question);
-          }
+          buttonText: 'Pecahkan Teka-Teki',
+          onContinue: () => { this.quizModal.show(question); }
         });
         return;
       }
@@ -414,7 +639,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.dialogModal.show({
       title: def.name,
-      avatarIcon: '🔍',
+      avatarIcon: 'search',
       message: def.examineText
     });
   }
@@ -425,14 +650,6 @@ export class WorldScene extends Phaser.Scene {
 
     for (const portal of this.portals) {
       if (playerTileX === portal.x && playerTileY === portal.y) {
-        // Prevent passing south gate to forest if player hasn't unlocked key or talked to princess
-        if (this.currentAreaKey === 'VILLAGE' && portal.targetArea === 'FOREST') {
-          if (!GameState.hasForestKey && !GameState.isQuestionAnswered('q_transportation')) {
-            // Let the gatekeeper challenge handle entry or show hint
-            // Player is allowed into the gate corridor where Gatekeeper stands!
-          }
-        }
-
         this.transitionToArea(portal.targetArea, portal.targetX, portal.targetY);
         break;
       }
@@ -442,6 +659,7 @@ export class WorldScene extends Phaser.Scene {
   private transitionToArea(targetArea: AreaKey, targetTileX: number, targetTileY: number): void {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.clearDirectionArrows();
     AudioSystem.playInteract();
 
     this.cameras.main.fadeOut(250, 0, 0, 0);
@@ -455,15 +673,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   public restartGame(): void {
+    this.clearDirectionArrows();
     GameState.reset();
     this.dialogModal?.close();
     this.quizModal?.close();
     this.victoryModal?.close();
 
     const regModal = (window as unknown as { registrationModal?: { show: () => void } }).registrationModal;
-    if (regModal) {
-      regModal.show();
-    }
+    if (regModal) regModal.show();
 
     this.scene.restart({
       areaKey: 'VILLAGE',

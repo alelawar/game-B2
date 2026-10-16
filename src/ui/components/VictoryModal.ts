@@ -1,6 +1,7 @@
 import { GameState } from '../../systems/GameState';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { EDUCATIONAL_QUESTIONS } from '../../data/questions';
+import { Icons, icon } from '../Icons';
 
 export class VictoryModal {
   private container: HTMLElement;
@@ -21,26 +22,29 @@ export class VictoryModal {
   private render(): void {
     this.container.innerHTML = `
       <div class="modal-box victory-box">
-        <div style="font-size: 4rem; animation: floatCrown 1.5s infinite alternate ease-in-out;">👑</div>
+        <div class="victory-crown-wrap">
+          ${Icons.crown(56, 56)}
+        </div>
+
         <h1 class="victory-title">KEMENANGAN KERAJAAN!</h1>
-        <p style="font-size: 1.1rem; color: #fde047; font-weight: 700;">
+
+        <p style="font-size: 0.85rem; color: #fde047; font-weight: 700; font-family: var(--font-body);">
           Mahkota Bintang Berhasil Dikembalikan kepada Putri Cahaya!
         </p>
 
         <div class="victory-score-pill">
-          ⭐ Nilai Akhir: <span id="vic-score">100</span> / 100
+          ${icon(Icons.star(16, 16), '#fef08a')}
+          Nilai Akhir: <span id="vic-score">0</span> / 100
         </div>
 
-        <div class="victory-details" id="vic-details">
-          <!-- Player summary will appear here -->
-        </div>
+        <div class="star-rating" id="vic-stars"></div>
 
-        <div id="vic-topics" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 6px;">
-          <!-- Topic pills -->
-        </div>
+        <div class="victory-details" id="vic-details"></div>
 
-        <button class="btn-primary" id="vic-btn-restart" style="margin-top: 10px; font-size: 1.2rem;">
-          🔄 Main Lagi (Play Again)
+        <div class="victory-topics" id="vic-topics"></div>
+
+        <button class="btn-primary" id="vic-btn-restart" style="margin-top: 8px;">
+          ${icon(Icons.refresh(16, 16))} Main Lagi (Play Again)
         </button>
       </div>
     `;
@@ -59,6 +63,7 @@ export class VictoryModal {
     AudioSystem.playVictory();
 
     const scoreEl = this.container.querySelector('#vic-score') as HTMLElement;
+    const starsEl = this.container.querySelector('#vic-stars') as HTMLElement;
     const detailsEl = this.container.querySelector('#vic-details') as HTMLElement;
     const topicsEl = this.container.querySelector('#vic-topics') as HTMLElement;
 
@@ -68,25 +73,39 @@ export class VictoryModal {
 
     scoreEl.textContent = String(GameState.score);
 
-    let starRating = '⭐⭐⭐ Luar Biasa (Sempurna)!';
-    if (GameState.score < 60) {
-      starRating = '⭐ Tetap Semangat Berlatih!';
-    } else if (GameState.score < 90) {
-      starRating = '⭐⭐ Sangat Bagus!';
+    // Star rating (1–3 stars)
+    let starCount = 1;
+    let ratingText = 'Tetap Semangat Berlatih!';
+    if (GameState.score >= 90) {
+      starCount = 3;
+      ratingText = 'Sempurna! Luar Biasa!';
+    } else if (GameState.score >= 60) {
+      starCount = 2;
+      ratingText = 'Sangat Bagus!';
     }
 
+    let starsHtml = '';
+    for (let i = 0; i < 3; i++) {
+      starsHtml += `<span class="${i < starCount ? '' : 'star-empty'}">${Icons.star(22, 22)}</span>`;
+    }
+    starsEl.innerHTML = starsHtml;
+
     detailsEl.innerHTML = `
-      <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">
-        Prajurit: <span style="color: #60a5fa;">${GameState.playerName}</span> &nbsp;|&nbsp; 
-        Kelas: <span style="color: #60a5fa;">${GameState.playerGrade} SD</span>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        ${icon(Icons.shield(16, 16), '#60a5fa')}
+        <strong style="color: #60a5fa;">${GameState.playerName}</strong>
+        <span style="color: #475569;">|</span>
+        <span style="color: #60a5fa;">Kelas ${GameState.playerGrade} SD</span>
       </div>
-      <div>${starRating}</div>
-      <div style="margin-top: 6px; color: #94a3b8; font-size: 0.9rem;">
-        Menjawab benar <strong>${correctCount}</strong> dari <strong>${totalQuestions}</strong> pertanyaan materi Bahasa Inggris (Total dikerjakan: ${answeredCount}/${totalQuestions}).
+      <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;">${ratingText}</div>
+      <div style="color: #94a3b8; font-size: 0.82rem;">
+        Menjawab benar <strong style="color: #f1f5f9;">${correctCount}</strong> dari
+        <strong style="color: #f1f5f9;">${totalQuestions}</strong> pertanyaan Bahasa Inggris
+        (dikerjakan: ${answeredCount}/${totalQuestions}).
       </div>
     `;
 
-    // Render topics list
+    // Topic pills
     topicsEl.innerHTML = '';
     EDUCATIONAL_QUESTIONS.forEach(q => {
       const state = GameState.answeredQuestions.get(q.id);
@@ -94,23 +113,14 @@ export class VictoryModal {
       const isAnswered = state?.answered;
 
       const pill = document.createElement('span');
-      pill.style.fontSize = '0.75rem';
-      pill.style.padding = '3px 8px';
-      pill.style.borderRadius = '10px';
-      pill.style.fontWeight = '700';
+      pill.className = `topic-pill ${isCorrect ? 'correct' : isAnswered ? 'wrong' : 'unanswered'}`;
 
       if (isCorrect) {
-        pill.style.background = '#065f46';
-        pill.style.color = '#a7f3d0';
-        pill.textContent = `✓ ${q.topic}`;
+        pill.innerHTML = `${icon(Icons.checkCircle(10, 10))} ${q.topic}`;
       } else if (isAnswered) {
-        pill.style.background = '#7f1d1d';
-        pill.style.color = '#fca5a5';
-        pill.textContent = `✗ ${q.topic}`;
+        pill.innerHTML = `${icon(Icons.xCircle(10, 10))} ${q.topic}`;
       } else {
-        pill.style.background = '#374151';
-        pill.style.color = '#9ca3af';
-        pill.textContent = `- ${q.topic}`;
+        pill.innerHTML = `${icon(Icons.info(10, 10))} ${q.topic}`;
       }
 
       topicsEl.appendChild(pill);

@@ -1,3 +1,5 @@
+import { Icons } from '../Icons';
+
 export interface VirtualInputState {
   up: boolean;
   down: boolean;
@@ -10,12 +12,8 @@ export interface VirtualInputState {
 export class TouchControls {
   private container: HTMLElement;
   public state: VirtualInputState = {
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-    interact: false,
-    attack: false
+    up: false, down: false, left: false, right: false,
+    interact: false, attack: false
   };
 
   constructor() {
@@ -31,13 +29,13 @@ export class TouchControls {
     this.container.innerHTML = `
       <div class="touch-dpad">
         <div></div>
-        <button class="dpad-btn" id="dpad-up">⬆️</button>
+        <button class="dpad-btn" id="dpad-up" title="Atas">${Icons.arrowUp(20, 20)}</button>
         <div></div>
-        <button class="dpad-btn" id="dpad-left">⬅️</button>
+        <button class="dpad-btn" id="dpad-left" title="Kiri">${Icons.arrowLeft(20, 20)}</button>
+        <div style="background: rgba(11,17,32,0.4); border-radius: 2px;"></div>
+        <button class="dpad-btn" id="dpad-right" title="Kanan">${Icons.arrowRight(20, 20)}</button>
         <div></div>
-        <button class="dpad-btn" id="dpad-right">➡️</button>
-        <div></div>
-        <button class="dpad-btn" id="dpad-down">⬇️</button>
+        <button class="dpad-btn" id="dpad-down" title="Bawah">${Icons.arrowDown(20, 20)}</button>
         <div></div>
       </div>
 
@@ -46,7 +44,7 @@ export class TouchControls {
           E
         </button>
         <button class="action-btn attack-btn" id="touch-btn-attack" title="Serang (Spasi)">
-          ⚔️
+          ${Icons.sword(22, 22)}
         </button>
       </div>
     `;
@@ -57,43 +55,23 @@ export class TouchControls {
       const el = this.container.querySelector(`#${id}`) as HTMLElement;
       if (!el) return;
 
-      const setVal = (val: boolean) => {
-        this.state[key] = val;
-      };
-
-      el.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        setVal(true);
-      });
-      el.addEventListener('pointerup', (e) => {
-        e.preventDefault();
-        setVal(false);
-      });
-      el.addEventListener('pointercancel', (e) => {
-        e.preventDefault();
-        setVal(false);
-      });
-      el.addEventListener('pointerleave', (e) => {
-        e.preventDefault();
-        setVal(false);
-      });
+      el.addEventListener('pointerdown', (e) => { e.preventDefault(); this.state[key] = true; });
+      el.addEventListener('pointerup',   (e) => { e.preventDefault(); this.state[key] = false; });
+      el.addEventListener('pointercancel', (e) => { e.preventDefault(); this.state[key] = false; });
+      el.addEventListener('pointerleave', (e) => { e.preventDefault(); this.state[key] = false; });
     };
 
-    bindBtn('dpad-up', 'up');
-    bindBtn('dpad-down', 'down');
-    bindBtn('dpad-left', 'left');
+    bindBtn('dpad-up',    'up');
+    bindBtn('dpad-down',  'down');
+    bindBtn('dpad-left',  'left');
     bindBtn('dpad-right', 'right');
     bindBtn('touch-btn-interact', 'interact');
-    bindBtn('touch-btn-attack', 'attack');
+    bindBtn('touch-btn-attack',   'attack');
   }
 
   public reset(): void {
-    this.state.up = false;
-    this.state.down = false;
-    this.state.left = false;
-    this.state.right = false;
-    this.state.interact = false;
-    this.state.attack = false;
+    this.state.up = this.state.down = this.state.left = this.state.right =
+    this.state.interact = this.state.attack = false;
   }
 
   public destroy(): void {
