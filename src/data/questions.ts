@@ -15,163 +15,163 @@ export interface QuestionItem {
 export const EDUCATIONAL_QUESTIONS: QuestionItem[] = [
   {
     id: 'q_likes',
-    topic: 'Likes and Dislikes',
+    topic: 'Prepositions of Place',
     gradeLevel: '3',
     contextTitle: 'Penjaga Alun-alun (Town Guard)',
-    dialogueIntro: 'Halo Prajurit! Sebelum kamu menjelajah desa, aku ingin menguji sapaanmu. Dengarkan baik-baik!',
-    question: 'Do you like fried chicken?',
+    dialogueIntro: 'Halo Prajurit! Lihat bendera kerajaan di depan gerbang istana.',
+    question: 'The flag is ________ the gate.',
     options: [
-      'Yes, I do.',
-      'Yes, I am.',
-      'No, I can\'t.'
+      'in front of',
+      'under',
+      'behind'
     ],
     correctIndex: 0,
-    explanation: 'Jawaban yang tepat untuk pertanyaan "Do you like...?" adalah "Yes, I do" atau "No, I don\'t".',
-    clueText: 'Penjaga Alun-alun berkata: "Prajurit yang sopan selalu tahu cara menjawab pertanyaan dengan benar!"'
+    explanation: '"In front of" artinya di depan. Bendera ada di depan gerbang.',
+    clueText: 'Penjaga: "Pintar! Periksa keranjang buah di meja pasar ya!"'
   },
   {
     id: 'q_numbers',
-    topic: 'Numbers (1–50)',
+    topic: 'Prepositions of Place',
     gradeLevel: '3',
-    contextTitle: 'Keranjang Buah Alun-alun (Fruit Basket)',
-    dialogueIntro: 'Kamu melihat keranjang buah segar milik pedagang istana. Ada label bertuliskan jumlah apel di keranjang!',
-    question: 'There are 25 sweet red apples in the basket. How do you write 25 in English words?',
+    contextTitle: 'Keranjang Buah (Fruit Basket)',
+    dialogueIntro: 'Ada keranjang apel merah segar di atas meja kayu.',
+    question: 'The apples are ________ the table.',
     options: [
-      'Twelve',
-      'Twenty-five',
-      'Fifty-two'
+      'under',
+      'on',
+      'behind'
     ],
     correctIndex: 1,
-    explanation: 'Angka 25 dalam bahasa Inggris dieja "Twenty-five" (20 = twenty, 5 = five).',
-    clueText: 'Petunjuk: Pedagang pasar bilang ia melihat jejak monster lari ke arah Taman Kerajaan di sebelah timur!'
+    explanation: '"On" artinya di atas. Apel ada di atas meja.',
+    clueText: 'Petunjuk: Tukang Kebun Rama ada di Taman Bunga sebelah timur!'
   },
   {
     id: 'q_hobbies',
-    topic: 'Hobbies',
+    topic: 'Prepositions of Place',
     gradeLevel: '3',
     contextTitle: 'Tukang Kebun Rama (Gardener)',
-    dialogueIntro: 'Hai prajurit cilik! Aku sedang merawat bunga mawar. Di waktu luang, aku suka berenang di danau istana.',
-    question: 'Rama loves spending his free time swimming in the lake. What is his hobby?',
+    dialogueIntro: 'Hai! Aku sedang menyiram bunga di samping air mancur.',
+    question: 'The flowers are ________ the fountain.',
     options: [
-      'My hobby is swimming.',
-      'My hobby is cycling.',
-      'My hobby is reading books.'
+      'next to',
+      'under',
+      'on'
     ],
     correctIndex: 0,
-    explanation: 'Berenang di air adalah "swimming". Kalimat menyatakan hobi adalah "My hobby is swimming."',
-    clueText: 'Tukang Kebun Rama berbisik: "Kucing istana tadi melihat makhluk berkilau lewat di dekat air mancur taman!"'
+    explanation: '"Next to" artinya di samping atau di sebelah.',
+    clueText: 'Rama: "Lihat anak kucing lucu yang sedang tidur di taman!"'
   },
   {
     id: 'q_there_is',
-    topic: 'There is / There are',
-    gradeLevel: '4',
-    contextTitle: 'Patung Kucing Taman (Garden Fountain)',
-    dialogueIntro: 'Di sebelah air mancur taman, kamu melihat seekor anak kucing oranye sedang tidur manis di rerumputan.',
-    question: 'Complete the sentence: "________ a cute cat sleeping in the garden."',
+    topic: 'Prepositions of Place',
+    gradeLevel: '3',
+    contextTitle: 'Kucing Taman (Garden Cat)',
+    dialogueIntro: 'Ada anak kucing oranye manis sedang tidur santai di bawah pohon.',
+    question: 'Where is the cat?',
     options: [
-      'There are',
-      'There am',
-      'There is'
+      'It is under the tree.',
+      'It is on the tree.',
+      'It is behind the tree.'
     ],
-    correctIndex: 2,
-    explanation: '"There is" digunakan untuk benda/hewan tunggal (a cat), sedangkan "There are" untuk benda jamak (lebih dari satu).',
-    clueText: 'Di bawah patung kucing ada ukiran kuno: "Kunci Hutan Rahasia disimpan di Dapur Istana sebelah utara!"'
+    correctIndex: 0,
+    explanation: '"Under" artinya di bawah. Kucing ada di bawah pohon ("under the tree").',
+    clueText: 'Petunjuk: Periksa tas sekolah di gazebo taman!'
   },
   {
     id: 'q_preposition',
     topic: 'Prepositions of Place',
     gradeLevel: '3',
-    contextTitle: 'Meja Belajar Taman (Gazebo Study Desk)',
-    dialogueIntro: 'Di gazebo taman ada meja kayu. Sebuah tas sekolah tertata rapi tepat di bagian bawah meja.',
-    question: 'The royal school bag is located underneath the study table. Where is the bag?',
+    contextTitle: 'Meja Belajar Gazebo (Study Desk)',
+    dialogueIntro: 'Di gazebo taman, ada tas sekolah di bawah meja belajar.',
+    question: 'Where is the bag?',
     options: [
       'It is on the table.',
       'It is under the table.',
       'It is behind the table.'
     ],
     correctIndex: 1,
-    explanation: '"Under" berarti di bawah. Jadi "It is under the table" menunjukkan posisi tas berada di bawah meja.',
-    clueText: 'Di dalam tas ada catatan: "Koki Istana suka membuat makan siang pada jam 12 siang. Temui dia di Dapur Istana!"'
+    explanation: '"Under" artinya di bawah. Tas ada di bawah meja ("under the table").',
+    clueText: 'Catatan di tas: "Koki Budi ada di Dapur Istana sebelah utara!"'
   },
   {
     id: 'q_meals',
-    topic: 'Meals and Meal Times',
+    topic: 'Prepositions of Place',
     gradeLevel: '3',
-    contextTitle: 'Koki Istana Budi (Royal Chef)',
-    dialogueIntro: 'Aroma masakan lezat tercium! Jam dinding besar istana menunjukkan pukul 12 siang (12 p.m.). Koki Budi sedang menyiapkan hidangan hangat.',
-    question: 'The royal clock strikes 12:00 p.m. noon. Which meal is being served right now?',
+    contextTitle: 'Koki Istana Budi (Chef)',
+    dialogueIntro: 'Koki Budi sedang memasak sup hangat di depan kompor dapur.',
+    question: 'The chef is ________ the stove.',
     options: [
-      'We eat lunch at 12 p.m.',
-      'We have breakfast at 12 p.m.',
-      'We eat dinner at 12 p.m.'
+      'in front of',
+      'under',
+      'behind'
     ],
     correctIndex: 0,
-    explanation: 'Makan siang pada pukul 12 siang disebut "lunch". "Breakfast" adalah sarapan pagi, sedangkan "dinner" adalah makan malam.',
-    clueText: 'Koki Budi tersenyum: "Hebat! Silakan periksa wastafel dapur jika ingin mencari kunci gerbang hutan!"'
+    explanation: '"In front of" artinya di depan. Koki berdiri di depan kompor.',
+    clueText: 'Koki Budi: "Kunci Hutan ada di wastafel dapur!"'
   },
   {
     id: 'q_kitchen_activities',
-    topic: 'Kitchen Activities & Modal "can"',
-    gradeLevel: '4',
-    contextTitle: 'Wastafel Dapur Istana (Kitchen Sink)',
-    dialogueIntro: 'Piring-piring perak istana baru saja selesai digunakan. Koki meminta bantuan prajurit untuk membersihkannya.',
-    question: 'Complete the sentence: "We can wash the dirty plates in the ________."',
+    topic: 'Prepositions of Place',
+    gradeLevel: '3',
+    contextTitle: 'Wastafel Dapur (Kitchen Sink)',
+    dialogueIntro: 'Piring-piring perak istana ditaruh di dalam wastafel.',
+    question: 'The plates are ________ the sink.',
     options: [
-      'stove',
-      'refrigerator',
-      'sink'
+      'behind',
+      'under',
+      'in'
     ],
     correctIndex: 2,
-    explanation: 'Tempat mencuci piring di dapur adalah wastafel/bak cuci piring ("sink"). "Stove" adalah kompor dan "refrigerator" adalah kulkas.',
-    clueText: 'Di dekat wastafel kamu menemukan Kristal Kunci Hutan! Bawalah ke ruang tamu untuk menemui Tetua Istana!'
+    explanation: '"In" artinya di dalam. Piring ada di dalam wastafel.',
+    clueText: 'Kamu menemukan Kunci Hutan Rahasia! Periksa ruang tamu istana!'
   },
   {
     id: 'q_living_room',
-    topic: 'Living Room Objects',
-    gradeLevel: '4',
-    contextTitle: 'Ruang Tamu Istana (Castle Living Room)',
-    dialogueIntro: 'Ruang tamu istana dihiasi karpet beludru merah dan perabot megah yang nyaman untuk duduk bersama keluarga kerajaan.',
-    question: 'Which comfortable furniture is used for people to sit together in the living room?',
+    topic: 'Prepositions of Place',
+    gradeLevel: '3',
+    contextTitle: 'Ruang Tamu Istana (Living Room)',
+    dialogueIntro: 'Ada lukisan besar raja di dinding, tepat di belakang sofa.',
+    question: 'The picture is ________ the sofa.',
     options: [
-      'Curtain',
-      'Sofa',
-      'Stove'
+      'under',
+      'behind',
+      'in front of'
     ],
     correctIndex: 1,
-    explanation: '"Sofa" adalah tempat duduk empuk di ruang tamu (living room). "Curtain" adalah tirai/gorden, dan "Stove" adalah kompor dapur.',
-    clueText: 'Tetua Istana di sofa berkata: "Gerbang Hutan Rahasia di selatan kini terbuka! Tapi waspadalah pada Penjaga Gerbang!"'
+    explanation: '"Behind" artinya di belakang. Lukisan ada di belakang sofa.',
+    clueText: 'Tetua Istana: "Pergilah ke Gerbang Hutan di selatan!"'
   },
   {
     id: 'q_transportation',
-    topic: 'Transportation to School',
-    gradeLevel: '4',
-    contextTitle: 'Penjaga Gerbang Hutan (Forest Gatekeeper)',
-    dialogueIntro: 'Penjaga berzirah besi menghalangi pintu gerbang Hutan Rahasia. Ia ingin memastikan prajurit yang lewat adalah anak yang cerdas!',
-    question: 'Edo pedals his two-wheeled vehicle to school every morning. How does he go to school?',
+    topic: 'Prepositions of Place',
+    gradeLevel: '3',
+    contextTitle: 'Penjaga Gerbang (Gatekeeper)',
+    dialogueIntro: 'Penjaga berdiri tegap di samping gerbang besi hutan.',
+    question: 'The guard is ________ the gate.',
     options: [
-      'He goes to school by bike.',
-      'He goes to school by bus.',
-      'He goes to school by train.'
+      'next to',
+      'under',
+      'on'
     ],
     correctIndex: 0,
-    explanation: '"Bike" (atau bicycle) berarti sepeda. Kalimat yang tepat adalah "He goes to school by bike."',
-    clueText: 'Penjaga Gerbang membuka palang pintu: "Silakan lewat! Monster Pencuri Mahkota ada di altar hutan terdalam. Kalahkan dia!"'
+    explanation: '"Next to" artinya di samping. Penjaga berdiri di samping gerbang.',
+    clueText: 'Penjaga: "Pintu dibuka! Kalahkan monster dan ambil Mahkota Bintang!"'
   },
   {
     id: 'q_present_continuous',
-    topic: 'Present Continuous Tense',
-    gradeLevel: '4',
-    contextTitle: 'Prasasti Kuno Hutan (Ancient Forest Tablet)',
-    dialogueIntro: 'Di depan Altar Mahkota Bintang, sebuah batu bertuliskan mantra kuno bercahaya emas. Kamu harus melengkapi mantranya!',
-    question: 'Look at the carving! "Look! Made is in the field with a soccer ball. He ________ playing football right now."',
+    topic: 'Prepositions of Place',
+    gradeLevel: '3',
+    contextTitle: 'Prasasti Kuno (Ancient Tablet)',
+    dialogueIntro: 'Prasasti kuno menunjukkan letak Mahkota Bintang di atas altar emas.',
+    question: 'The crown is ________ the altar.',
     options: [
-      'are',
-      'is',
-      'am'
+      'under',
+      'on',
+      'behind'
     ],
     correctIndex: 1,
-    explanation: 'Untuk subjek tunggal orang ketiga ("He"), bentuk to be dalam Present Continuous adalah "is" (He is playing).',
-    clueText: 'Cahaya prasasti bersinar terang! Monster Pelindung melemah dan Mahkota Bintang muncul di altar!'
+    explanation: '"On" artinya di atas. Mahkota berada di atas altar emas.',
+    clueText: 'Prasasti bersinar! Mahkota Bintang siap diambil di atas altar!'
   }
 ];
 
