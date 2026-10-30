@@ -70,11 +70,13 @@ export class TouchControls {
       </div>
 
       <div class="touch-actions">
-        <button class="action-btn" id="touch-btn-interact" title="Interaksi (E)">
-          E
+        <button class="action-btn interact-btn" id="touch-btn-interact" title="Interaksi (E)">
+          <span class="action-btn-icon">${Icons.messageCircle(20, 20)}</span>
+          <span class="action-btn-label">E</span>
         </button>
         <button class="action-btn attack-btn" id="touch-btn-attack" title="Serang (Spasi)">
-          ${Icons.sword(22, 22)}
+          <span class="action-btn-icon">${Icons.sword(22, 22)}</span>
+          <span class="action-btn-label">Serang</span>
         </button>
       </div>
     `;
@@ -338,6 +340,33 @@ export class TouchControls {
     }
 
     this.updateNotches(up, down, left, right);
+  }
+
+  public updateInteractTarget(target: { type: 'npc' | 'object' | 'portal'; label: string } | null): void {
+    const btn = this.container.querySelector('#touch-btn-interact') as HTMLElement;
+    if (!btn) return;
+
+    const iconSpan = btn.querySelector('.action-btn-icon');
+    const labelSpan = btn.querySelector('.action-btn-label');
+
+    if (target) {
+      btn.classList.add('can-interact');
+      if (target.type === 'npc') {
+        btn.classList.add('target-npc');
+        btn.classList.remove('target-object');
+        if (iconSpan) iconSpan.innerHTML = Icons.messageCircle(22, 22);
+        if (labelSpan) labelSpan.textContent = 'Bicara';
+      } else {
+        btn.classList.add('target-object');
+        btn.classList.remove('target-npc');
+        if (iconSpan) iconSpan.innerHTML = Icons.search(22, 22);
+        if (labelSpan) labelSpan.textContent = 'Periksa';
+      }
+    } else {
+      btn.classList.remove('can-interact', 'target-npc', 'target-object');
+      if (iconSpan) iconSpan.innerHTML = Icons.messageCircle(16, 16);
+      if (labelSpan) labelSpan.textContent = 'E';
+    }
   }
 
   public reset(): void {

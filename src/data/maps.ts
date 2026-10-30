@@ -91,7 +91,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 10,
         questionId: 'q_likes',
         avatarIcon: '🛡️',
-        dialogueIntro: 'Salam prajurit! Sebelum memulai misi mencari Mahkota Bintang, mari kita uji pengetahuanmu tentang posisi benda (Prepositions of Place)!',
+        dialogueIntro: 'Salam prajurit! Aku sangat suka makan buah apel merah yang manis setiap pagi. Yuk jawab pertanyaanku tentang Likes & Dislikes!',
         dialogueSolved: 'Kerja bagus! Jangan lupa periksa keranjang buah di sebelah meja pasar untuk petunjuk selanjutnya!'
       }
     ],
@@ -104,7 +104,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 10,
         questionId: 'q_numbers',
         promptText: 'Tekan [E] untuk Periksa Keranjang Buah',
-        examineText: 'Sebuah keranjang penuh buah apel merah ranum. Ada teka-teki letak posisi benda (Prepositions of Place)!'
+        examineText: 'Sebuah keranjang penuh buah apel merah manis. Putri Cahaya tidak suka durian karena baunya menyengat!'
       },
       {
         id: 'obj_fountain_village',
@@ -165,7 +165,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 7,
         questionId: 'q_hobbies',
         avatarIcon: '🌻',
-        dialogueIntro: 'Halo! Selamat datang di taman bunga. Mari kita pelajari letak posisi benda di sekitar taman istana!',
+        dialogueIntro: 'Halo! Aku suka merawat bunga di taman, tetapi aku tidak suka ulat yang memakan daun bunga! Mari jawab pertanyaan Likes & Dislikes ini!',
         dialogueSolved: 'Senang berbicara denganmu! Coba periksa kucing manis di bawah pohon dan meja belajar di gazebo!'
       }
     ],
@@ -178,7 +178,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 8,
         questionId: 'q_there_is',
         promptText: 'Tekan [E] untuk Periksa Kucing Taman',
-        examineText: 'Seekor kucing manis sedang bersantai tidur di bawah pohon. Ada teka-teki letak posisi benda di dekatnya!'
+        examineText: 'Seekor anak kucing oranye manis sedang meminum susu hangat dengan sangat lahap!'
       },
       {
         id: 'obj_desk_garden',
@@ -188,7 +188,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 14,
         questionId: 'q_preposition',
         promptText: 'Tekan [E] untuk Periksa Meja Belajar',
-        examineText: 'Meja kayu di bawah rindang gazebo. Ada tas sekolah di bawahnya yang memuat petunjuk tentang Dapur Istana!'
+        examineText: 'Meja kayu di gazebo taman yang penuh buku cerita. Anak-anak kerajaan sangat suka membaca buku cerita bersama di sini!'
       }
     ],
     enemies: [
@@ -242,7 +242,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 8,
         questionId: 'q_meals',
         avatarIcon: '👨‍🍳',
-        dialogueIntro: 'Selamat datang di Dapur Kerajaan! Mari uji pengetahuanmu tentang letak posisi benda di dapur istana!',
+        dialogueIntro: 'Selamat datang di Dapur Kerajaan! Aku sangat suka memasak sup ayam hangat untuk keluarga istana!',
         dialogueSolved: 'Aroma masakan lezat selalu ada di sini! Jangan lupa periksa wastafel dapur untuk mencari kunci hutan!'
       }
     ],
@@ -255,7 +255,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 6,
         questionId: 'q_kitchen_activities',
         promptText: 'Tekan [E] untuk Periksa Wastafel Dapur',
-        examineText: 'Bak cuci piring perak yang bersih berkilau. Di dalamnya tersimpan Kunci Hutan Rahasia dan teka-teki letak benda!'
+        examineText: 'Bak cuci piring perak yang bersih berkilau. Para koki istana tidak suka dapur yang kotor! Di dalamnya tersimpan Kunci Hutan Rahasia!'
       },
       {
         id: 'obj_sofa_castle',
@@ -265,7 +265,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 7,
         questionId: 'q_living_room',
         promptText: 'Tekan [E] untuk Periksa Ruang Tamu',
-        examineText: 'Sofa mewah tempat peristirahatan keluarga kerajaan. Ada kuis tentang posisi lukisan di belakang sofa!'
+        examineText: 'Meja dan sofa ruang tamu kerajaan. Raja suka minum teh manis hangat dan tidak suka minum kopi pahit!'
       }
     ],
     enemies: [
@@ -319,7 +319,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 4,
         questionId: 'q_transportation',
         avatarIcon: '🛡️',
-        dialogueIntro: 'Hutan Rahasia di depan sangat berbahaya! Jawab pertanyaanku tentang posisi benda di gerbang jika kamu ingin lewat!',
+        dialogueIntro: 'Hutan Rahasia di depan sangat berbahaya! Aku sangat tidak suka monster jahat di hutan itu. Jawab pertanyaanku jika kamu ingin lewat!',
         dialogueSolved: 'Bagus sekali! Gerbang dibuka. Kalahkan monster di dalam dan kembalikan Mahkota Bintang!'
       }
     ],
@@ -332,7 +332,7 @@ export const AREA_MAPS: Record<AreaKey, AreaData> = {
         y: 15,
         questionId: 'q_present_continuous',
         promptText: 'Tekan [E] untuk Membaca Prasasti Kuno',
-        examineText: 'Batu prasasti bersinar ungu dengan teka-teki letak Mahkota Bintang. Memecahkannya akan membuka perisai altar!'
+        examineText: 'Batu prasasti bersinar ungu menceritakan betapa Putri Cahaya sangat menyukai Mahkota Bintang. Pecahkan teka-tekinya untuk membuka perisai altar!'
       },
       {
         id: 'obj_crown_altar',

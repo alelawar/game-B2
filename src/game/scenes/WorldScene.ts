@@ -102,6 +102,16 @@ export class WorldScene extends Phaser.Scene {
     areaData.npcs.forEach(def => {
       const npc = new NPC(this, def);
       npc.setDepth(9);
+      npc.setInteractive({ useHandCursor: true });
+      npc.badgeText?.setInteractive({ useHandCursor: true });
+      const onNpcTap = () => {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.x, npc.y);
+        if (dist <= 80 && !this.isModalOpen) {
+          this.handleNPCInteraction(npc);
+        }
+      };
+      npc.on('pointerdown', onNpcTap);
+      npc.badgeText?.on('pointerdown', onNpcTap);
       this.npcs.push(npc);
       this.physics.add.collider(this.player, npc);
     });
@@ -110,6 +120,16 @@ export class WorldScene extends Phaser.Scene {
     areaData.objects.forEach(def => {
       const obj = new Interactable(this, def);
       obj.setDepth(8);
+      obj.setInteractive({ useHandCursor: true });
+      obj.badgeText?.setInteractive({ useHandCursor: true });
+      const onObjTap = () => {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, obj.x, obj.y);
+        if (dist <= 80 && !this.isModalOpen) {
+          this.handleObjectInteraction(obj);
+        }
+      };
+      obj.on('pointerdown', onObjTap);
+      obj.badgeText?.on('pointerdown', onObjTap);
       this.interactables.push(obj);
       this.physics.add.collider(this.player, obj);
     });
@@ -646,12 +666,19 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private checkInteractionRange(interactTriggered: boolean): void {
+    const previousTarget = this.closestTarget;
+
     if (this.isModalOpen) {
+      if (previousTarget && 'setHighlighted' in previousTarget.entity) {
+        (previousTarget.entity as NPC | Interactable).setHighlighted(false);
+      }
       this.hud?.hideInteractionPrompt();
+      this.touchControls?.updateInteractTarget(null);
       return;
     }
 
-    let nearestDist = 52;
+
+    let nearestDist = 60;
     this.closestTarget = null;
 
     for (const npc of this.npcs) {
@@ -670,7 +697,17 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // Unhighlight previous target if target has changed
+    if (previousTarget && previousTarget.entity !== this.closestTarget?.entity) {
+      if ('setHighlighted' in previousTarget.entity) {
+        (previousTarget.entity as NPC | Interactable).setHighlighted(false);
+      }
+    }
+
     if (this.closestTarget) {
+      if ('setHighlighted' in this.closestTarget.entity) {
+        (this.closestTarget.entity as NPC | Interactable).setHighlighted(true);
+      }
       const cam = this.cameras.main;
       const targetEntity = this.closestTarget.entity as Phaser.GameObjects.Sprite;
       const screenX = (targetEntity.x - cam.scrollX) * cam.zoom;
@@ -681,13 +718,19 @@ export class WorldScene extends Phaser.Scene {
         promptText = (this.closestTarget.entity as Interactable).dataDef.promptText || 'Tekan [E] Periksa';
       }
 
-      this.hud?.showInteractionPrompt(screenX, screenY, promptText);
+      const actionLabel = this.closestTarget.type === 'object' ? 'Periksa' : 'Bicara';
+      this.hud?.showInteractionPrompt(screenX, screenY, promptText, () => this.triggerInteraction());
+      this.touchControls?.updateInteractTarget({ type: this.closestTarget.type, label: actionLabel });
 
       if (interactTriggered) {
         this.triggerInteraction();
       }
     } else {
+      if (previousTarget && 'setHighlighted' in previousTarget.entity) {
+        (previousTarget.entity as NPC | Interactable).setHighlighted(false);
+      }
       this.hud?.hideInteractionPrompt();
+      this.touchControls?.updateInteractTarget(null);
     }
   }
 

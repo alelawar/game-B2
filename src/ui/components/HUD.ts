@@ -354,18 +354,6 @@ export class HUD {
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
     ctx.strokeRect(playerTileX * tw - 1, playerTileY * th - 1, tw + 3, th + 3);
-
-    // // Area label (reuse single DOM node)
-    // let labelEl = this.minimapContainer.querySelector('.minimap-label') as HTMLDivElement;
-    // if (!labelEl) {
-    //   labelEl = document.createElement('div');
-    //   labelEl.className = 'minimap-label';
-    //   this.minimapContainer.appendChild(labelEl);
-    // }
-    // const cleanName = area.name.split('(')[0].trim();
-    // if (labelEl.textContent !== cleanName) {
-    //   labelEl.textContent = cleanName;
-    // }
   }
 
   private isNPCQuestTarget(npcId: string): boolean {
@@ -389,11 +377,34 @@ export class HUD {
     x: number,
     y: number,
     text: string = "Tekan [E]",
+    onInteract?: () => void
   ): void {
-    this.interactionBubble.innerHTML = `${icon(Icons.doorOpen(12, 12))} ${text}`;
-    this.interactionBubble.style.left = `${x}px`;
-    this.interactionBubble.style.top = `${y}px`;
-    this.interactionBubble.style.display = "block";
+    const isMobile = window.innerWidth <= 820 || 'ontouchstart' in window;
+    let displayText = text;
+    if (isMobile) {
+      const clean = text.replace(/Tekan \[E\]\s*(untuk\s*)?/gi, '').trim();
+      displayText = clean ? `Sentuh untuk ${clean}` : 'Sentuh untuk Bicara';
+    }
+
+    this.interactionBubble.innerHTML = `${icon(Icons.messageCircle(12, 12))} ${displayText}`;
+
+    const canvas = document.querySelector('#game-canvas-container canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const realX = rect.left + (x / 800) * rect.width;
+      const realY = rect.top + (y / 600) * rect.height;
+      this.interactionBubble.style.left = `${realX}px`;
+      this.interactionBubble.style.top = `${realY}px`;
+    } else {
+      this.interactionBubble.style.left = `${x}px`;
+      this.interactionBubble.style.top = `${y}px`;
+    }
+
+    this.interactionBubble.style.display = "flex";
+    this.interactionBubble.onclick = (e) => {
+      e.stopPropagation();
+      if (onInteract) onInteract();
+    };
   }
 
   public hideInteractionPrompt(): void {

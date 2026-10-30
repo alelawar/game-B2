@@ -30,6 +30,8 @@ export class QuizModal {
           </span>
         </div>
 
+        <div id="quiz-dialogue-intro" style="font-size: 0.82rem; color: #94a3b8; margin-top: 6px; font-style: italic;"></div>
+
         <div class="quiz-question-text" id="quiz-question">
           Question?
         </div>
@@ -97,6 +99,8 @@ export class QuizModal {
 
     topicEl.textContent = question.topic;
     contextEl.textContent = question.contextTitle;
+    const introEl = this.container.querySelector('#quiz-dialogue-intro') as HTMLElement;
+    if (introEl) introEl.textContent = question.dialogueIntro;
     questionEl.textContent = question.question;
 
     feedbackEl.classList.remove('show');

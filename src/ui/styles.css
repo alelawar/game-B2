@@ -226,21 +226,24 @@ body, html {
 /* Interaction prompt bubble */
 #interaction-bubble {
   position: absolute;
-  z-index: 15;
+  z-index: 50;
   transform: translate(-50%, -100%);
   background: var(--primary-gold);
   color: #1e1b4b;
   font-family: var(--font-pixel);
   font-weight: 800;
-  font-size: 0.5rem;
-  padding: 5px 10px;
-  border-radius: 2px;
+  font-size: 0.52rem;
+  padding: 6px 12px;
+  border-radius: 4px;
   border: 2px solid #fef08a;
-  box-shadow: 2px 2px 0px #7a5311;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 2px 2px 0px #7a5311;
   display: none;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
   pointer-events: auto;
   animation: bouncePrompt 0.7s infinite alternate ease-in-out;
+  white-space: nowrap;
 }
 
 #interaction-bubble::after {
@@ -388,23 +391,6 @@ body, html {
   height: 100%;
   image-rendering: pixelated;
 }
-
-.minimap-label {
-  position: absolute;
-  bottom: 2px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  font-family: var(--font-pixel);
-  font-size: 0.35rem;
-  color: #fef08a;
-  text-shadow: 1px 1px 0px #000;
-  pointer-events: none;
-}
-
-/* ========================================================
-   Direction Arrow Indicators (in-game, rendered via Phaser)
-   ======================================================== */
 
 /* ========================================================
    OVERLAYS & MODALS — pixel-art border theme
@@ -1041,10 +1027,10 @@ body, html {
   box-shadow: 0 0 8px #38bdf8;
 }
 
-/* Action Buttons (Serang & Interaksi) - restored to original pixel style */
+/* Action Buttons (Serang & Interaksi) */
 .touch-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-end;
   pointer-events: auto;
   user-select: none;
@@ -1052,21 +1038,55 @@ body, html {
 }
 
 .action-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 2px;
+  width: 54px;
+  height: 54px;
+  border-radius: 4px;
   background: rgba(11, 17, 32, 0.9);
   border: 2px solid var(--primary-gold);
   color: #fef08a;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
   box-shadow: 2px 2px 0px #7a5311;
   font-family: var(--font-pixel);
   font-size: 0.5rem;
+  transition: all 0.18s ease;
+}
+
+.action-btn .action-btn-label {
+  font-family: var(--font-pixel);
+  font-size: 0.38rem;
+  line-height: 1;
+}
+
+.action-btn.interact-btn {
+  opacity: 0.6;
+}
+
+.action-btn.interact-btn.can-interact {
+  opacity: 1 !important;
+  background: rgba(180, 83, 9, 0.95);
+  border-color: #fbbf24;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(245, 166, 35, 0.8), 2px 2px 0px #7a5311;
+  animation: pulse-interact-btn 0.65s infinite alternate ease-in-out;
+}
+
+.action-btn.interact-btn.can-interact.target-object {
+  background: rgba(3, 105, 161, 0.95);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.8), 2px 2px 0px #0369a1;
+}
+
+@keyframes pulse-interact-btn {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
 }
 
 .action-btn.attack-btn {
@@ -1087,7 +1107,6 @@ body, html {
 
 /* Desktop layout adjustments (controls visible with clear spacing) */
 @media (min-width: 769px) {
-  /* On desktop, keep actions to the left of minimap so they don't collide */
   #game-controls .touch-actions {
     margin-right: 140px;
   }
@@ -1095,7 +1114,6 @@ body, html {
 
 /* Tablet & Mobile (width <= 820px): Fix all overlaps */
 @media (max-width: 820px) {
-  /* Hide keyboard hints on mobile screens */
   #controls-hint {
     display: none;
   }
@@ -1103,7 +1121,6 @@ body, html {
     display: none;
   }
 
-  /* Wrap top HUD gracefully so Objective Banner moves to second row */
   #game-hud {
     flex-wrap: wrap;
     padding: 6px 8px;
@@ -1125,7 +1142,6 @@ body, html {
     height: 28px;
   }
 
-  /* Objective banner sits below row 1, centered, never colliding with buttons */
   .hud-objective-banner {
     position: static;
     transform: none;
@@ -1139,7 +1155,6 @@ body, html {
     text-align: center;
   }
 
-  /* Minimap: positioned at bottom-right stacked cleanly above action buttons, NEVER covering top direction banner */
   #minimap-container {
     bottom: 74px;
     top: auto;
@@ -1149,7 +1164,6 @@ body, html {
     z-index: 25;
   }
 
-  /* Quest log slide-in */
   #quest-log-panel {
     top: 48px;
     right: 8px;
@@ -1158,7 +1172,6 @@ body, html {
     z-index: 60;
   }
 
-  /* Mobile controls sizing & positioning */
   #game-controls, #mobile-controls {
     bottom: 14px;
     padding: 0 14px;
@@ -1182,11 +1195,10 @@ body, html {
   }
 
   .action-btn {
-    width: 50px;
-    height: 50px;
+    width: 52px;
+    height: 52px;
   }
 
-  /* Modals fitting comfortably on mobile screens */
   .modal-box {
     padding: 14px;
     max-height: 88vh;
@@ -1240,8 +1252,7 @@ body, html {
   }
 
   .action-btn {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
   }
 }
-

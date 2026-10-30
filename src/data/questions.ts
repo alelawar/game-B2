@@ -15,162 +15,162 @@ export interface QuestionItem {
 export const EDUCATIONAL_QUESTIONS: QuestionItem[] = [
   {
     id: 'q_likes',
-    topic: 'Prepositions of Place',
+    topic: 'Likes & Dislikes',
     gradeLevel: '3',
     contextTitle: 'Penjaga Alun-alun (Town Guard)',
-    dialogueIntro: 'Halo Prajurit! Lihat bendera kerajaan di depan gerbang istana.',
-    question: 'The flag is ________ the gate.',
+    dialogueIntro: 'Penjaga Alun-alun sangat suka makan apel merah yang manis setiap pagi.',
+    question: 'The guard eats sweet red apples every morning. He ________ apples.',
     options: [
-      'in front of',
-      'under',
-      'behind'
+      'likes',
+      'dislikes',
+      'don\'t like'
     ],
     correctIndex: 0,
-    explanation: '"In front of" artinya di depan. Bendera ada di depan gerbang.',
+    explanation: 'Karena subjeknya tunggal (He) dan dia menyukai apel, kita menggunakan "likes".',
     clueText: 'Penjaga: "Pintar! Periksa keranjang buah di meja pasar ya!"'
   },
   {
     id: 'q_numbers',
-    topic: 'Prepositions of Place',
+    topic: 'Yes / No (Likes & Dislikes)',
     gradeLevel: '3',
     contextTitle: 'Keranjang Buah (Fruit Basket)',
-    dialogueIntro: 'Ada keranjang apel merah segar di atas meja kayu.',
-    question: 'The apples are ________ the table.',
+    dialogueIntro: 'Di keranjang hanya ada apel. Putri Cahaya tidak suka buah durian karena baunya menyengat.',
+    question: 'Princess Cahaya does not eat durian. Does she like durian?',
     options: [
-      'under',
-      'on',
-      'behind'
+      'Yes, she does.',
+      'No, she doesn\'t.',
+      'Yes, I do.'
     ],
     correctIndex: 1,
-    explanation: '"On" artinya di atas. Apel ada di atas meja.',
+    explanation: 'Pertanyaan "Does she like...?" untuk hal yang tidak disukai dijawab "No, she doesn\'t."',
     clueText: 'Petunjuk: Tukang Kebun Rama ada di Taman Bunga sebelah timur!'
   },
   {
     id: 'q_hobbies',
-    topic: 'Prepositions of Place',
+    topic: 'Likes & Dislikes',
     gradeLevel: '3',
     contextTitle: 'Tukang Kebun Rama (Gardener)',
-    dialogueIntro: 'Hai! Aku sedang menyiram bunga di samping air mancur.',
-    question: 'The flowers are ________ the fountain.',
+    dialogueIntro: 'Tukang Kebun Rama senang merawat bunga, tetapi ia tidak suka ulat yang merusak daun.',
+    question: 'Rama is sad when caterpillars eat his flowers. He ________ caterpillars.',
     options: [
-      'next to',
-      'under',
-      'on'
+      'doesn\'t like',
+      'likes',
+      'don\'t like'
     ],
     correctIndex: 0,
-    explanation: '"Next to" artinya di samping atau di sebelah.',
-    clueText: 'Rama: "Lihat anak kucing lucu yang sedang tidur di taman!"'
+    explanation: 'Untuk subjek "He" (tunggal), bentuk negatif (tidak suka) adalah "doesn\'t like".',
+    clueText: 'Rama: "Lihat anak kucing lucu yang sedang minum susu di taman!"'
   },
   {
     id: 'q_there_is',
-    topic: 'Prepositions of Place',
+    topic: 'Yes / No (Likes & Dislikes)',
     gradeLevel: '3',
     contextTitle: 'Kucing Taman (Garden Cat)',
-    dialogueIntro: 'Ada anak kucing oranye manis sedang tidur santai di bawah pohon.',
-    question: 'Where is the cat?',
+    dialogueIntro: 'Anak kucing oranye di taman sedang meminum susu hangat dengan sangat lahap!',
+    question: 'The cat drinks the warm milk happily. Does the cat like milk?',
     options: [
-      'It is under the tree.',
-      'It is on the tree.',
-      'It is behind the tree.'
+      'Yes, it does.',
+      'No, it doesn\'t.',
+      'No, I don\'t.'
     ],
     correctIndex: 0,
-    explanation: '"Under" artinya di bawah. Kucing ada di bawah pohon ("under the tree").',
-    clueText: 'Petunjuk: Periksa tas sekolah di gazebo taman!'
+    explanation: 'Kucing (it) menyukai susu hangat, sehingga dijawab "Yes, it does."',
+    clueText: 'Petunjuk: Periksa meja belajar di gazebo taman!'
   },
   {
     id: 'q_preposition',
-    topic: 'Prepositions of Place',
+    topic: 'Likes & Dislikes',
     gradeLevel: '3',
     contextTitle: 'Meja Belajar Gazebo (Study Desk)',
-    dialogueIntro: 'Di gazebo taman, ada tas sekolah di bawah meja belajar.',
-    question: 'Where is the bag?',
+    dialogueIntro: 'Di meja belajar ada banyak buku cerita. Anak-anak kerajaan suka membaca buku bersama.',
+    question: 'The children read storybooks happily every day. They ________ reading books.',
     options: [
-      'It is on the table.',
-      'It is under the table.',
-      'It is behind the table.'
+      'doesn\'t like',
+      'like',
+      'dislikes'
     ],
     correctIndex: 1,
-    explanation: '"Under" artinya di bawah. Tas ada di bawah meja ("under the table").',
-    clueText: 'Catatan di tas: "Koki Budi ada di Dapur Istana sebelah utara!"'
+    explanation: 'Untuk subjek jamak "They" (mereka), kata kerja yang tepat adalah "like" (tanpa -s).',
+    clueText: 'Catatan di meja: "Koki Budi ada di Dapur Istana sebelah utara!"'
   },
   {
     id: 'q_meals',
-    topic: 'Prepositions of Place',
+    topic: 'Yes / No (Likes & Dislikes)',
     gradeLevel: '3',
     contextTitle: 'Koki Istana Budi (Chef)',
-    dialogueIntro: 'Koki Budi sedang memasak sup hangat di depan kompor dapur.',
-    question: 'The chef is ________ the stove.',
+    dialogueIntro: 'Koki Budi tersenyum senang: "Aku sangat suka memasak sup ayam hangat!"',
+    question: 'Chef Budi says, "I love cooking chicken soup!" Do you like chicken soup, Chef?',
     options: [
-      'in front of',
-      'under',
-      'behind'
+      'Yes, I do.',
+      'No, I don\'t.',
+      'No, he doesn\'t.'
     ],
     correctIndex: 0,
-    explanation: '"In front of" artinya di depan. Koki berdiri di depan kompor.',
+    explanation: 'Pertanyaan "Do you like...?" jika suka dijawab dengan "Yes, I do."',
     clueText: 'Koki Budi: "Kunci Hutan ada di wastafel dapur!"'
   },
   {
     id: 'q_kitchen_activities',
-    topic: 'Prepositions of Place',
+    topic: 'Likes & Dislikes',
     gradeLevel: '3',
     contextTitle: 'Wastafel Dapur (Kitchen Sink)',
-    dialogueIntro: 'Piring-piring perak istana ditaruh di dalam wastafel.',
-    question: 'The plates are ________ the sink.',
+    dialogueIntro: 'Para koki selalu mencuci piring sampai bersih. Mereka tidak suka dapur yang kotor.',
+    question: 'The chefs always keep the kitchen clean. They ________ a dirty kitchen.',
     options: [
-      'behind',
-      'under',
-      'in'
+      'likes',
+      'like',
+      'don\'t like'
     ],
     correctIndex: 2,
-    explanation: '"In" artinya di dalam. Piring ada di dalam wastafel.',
-    clueText: 'Kamu menemukan Kunci Hutan Rahasia! Periksa ruang tamu istana!'
+    explanation: 'Untuk subjek "They" (mereka), bentuk tidak suka adalah "don\'t like".',
+    clueText: 'Kamu menemukan Kunci Hutan Rahasia! Periksa juga ruang tamu istana!'
   },
   {
     id: 'q_living_room',
-    topic: 'Prepositions of Place',
+    topic: 'Yes / No (Likes & Dislikes)',
     gradeLevel: '3',
     contextTitle: 'Ruang Tamu Istana (Living Room)',
-    dialogueIntro: 'Ada lukisan besar raja di dinding, tepat di belakang sofa.',
-    question: 'The picture is ________ the sofa.',
+    dialogueIntro: 'Di meja ruang tamu ada teh manis. Raja tidak suka minum kopi karena terlalu pahit.',
+    question: 'The King never drinks bitter coffee. Does the King like bitter coffee?',
     options: [
-      'under',
-      'behind',
-      'in front of'
+      'Yes, he does.',
+      'No, he doesn\'t.',
+      'Yes, she does.'
     ],
     correctIndex: 1,
-    explanation: '"Behind" artinya di belakang. Lukisan ada di belakang sofa.',
+    explanation: 'Karena Raja (He) tidak suka kopi pahit, jawaban yang tepat adalah "No, he doesn\'t."',
     clueText: 'Tetua Istana: "Pergilah ke Gerbang Hutan di selatan!"'
   },
   {
     id: 'q_transportation',
-    topic: 'Prepositions of Place',
+    topic: 'Yes / No (Likes & Dislikes)',
     gradeLevel: '3',
     contextTitle: 'Penjaga Gerbang (Gatekeeper)',
-    dialogueIntro: 'Penjaga berdiri tegap di samping gerbang besi hutan.',
-    question: 'The guard is ________ the gate.',
+    dialogueIntro: 'Penjaga Gerbang berkata tegas: "Aku tidak suka monster jahat yang mencuri mahkota!"',
+    question: 'Gatekeeper: "I hate the bad monsters!" Do you like the monsters, Gatekeeper?',
     options: [
-      'next to',
-      'under',
-      'on'
+      'No, I don\'t.',
+      'Yes, I do.',
+      'Yes, he does.'
     ],
     correctIndex: 0,
-    explanation: '"Next to" artinya di samping. Penjaga berdiri di samping gerbang.',
+    explanation: 'Penjaga tidak menyukai monster, maka jawaban "Do you like...?" adalah "No, I don\'t."',
     clueText: 'Penjaga: "Pintu dibuka! Kalahkan monster dan ambil Mahkota Bintang!"'
   },
   {
     id: 'q_present_continuous',
-    topic: 'Prepositions of Place',
+    topic: 'Likes & Dislikes',
     gradeLevel: '3',
     contextTitle: 'Prasasti Kuno (Ancient Tablet)',
-    dialogueIntro: 'Prasasti kuno menunjukkan letak Mahkota Bintang di atas altar emas.',
-    question: 'The crown is ________ the altar.',
+    dialogueIntro: 'Prasasti kuno menceritakan bahwa Putri Cahaya sangat menyukai Mahkota Bintang yang berkilau.',
+    question: 'Princess Cahaya loves the shining Star Crown very much. She ________ the Star Crown.',
     options: [
-      'under',
-      'on',
-      'behind'
+      'doesn\'t like',
+      'likes',
+      'don\'t like'
     ],
     correctIndex: 1,
-    explanation: '"On" artinya di atas. Mahkota berada di atas altar emas.',
+    explanation: 'Karena Putri Cahaya (She) sangat menyukai Mahkota Bintang, gunakan "likes".',
     clueText: 'Prasasti bersinar! Mahkota Bintang siap diambil di atas altar!'
   }
 ];
