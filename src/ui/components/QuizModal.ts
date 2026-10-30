@@ -155,7 +155,12 @@ export class QuizModal {
       }
     });
 
-    isCorrect ? AudioSystem.playCorrect() : AudioSystem.playIncorrect();
+    if (this.currentQuestion.id === 'q_kitchen_activities') {
+      AudioSystem.playKeyFound();
+    } else {
+      isCorrect ? AudioSystem.playCorrect() : AudioSystem.playIncorrect();
+    }
+
     this.showFeedbackUI(isCorrect, false);
 
     const continueBtn = this.container.querySelector('#quiz-btn-continue') as HTMLButtonElement;

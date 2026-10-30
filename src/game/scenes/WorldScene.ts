@@ -677,7 +677,6 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-
     let nearestDist = 60;
     this.closestTarget = null;
 
@@ -895,12 +894,34 @@ export class WorldScene extends Phaser.Scene {
     if (def.questionId) {
       const question = getQuestionById(def.questionId);
       if (question) {
+        if (def.id === 'obj_sink_kitchen' && GameState.hasForestKey) {
+          AudioSystem.playKeyFound();
+          this.dialogModal.show({
+            title: def.name,
+            avatarIcon: 'key',
+            message: 'Kunci Hutan Rahasia sudah kamu bawa di sakumu! Segera temui Penjaga Gerbang Hutan di sebelah selatan!'
+          });
+          return;
+        }
+
         this.dialogModal.show({
           title: def.name,
           avatarIcon: 'search',
           message: def.examineText,
           buttonText: 'Pecahkan Teka-Teki',
-          onContinue: () => { this.quizModal.show(question); }
+          onContinue: () => {
+            this.quizModal.show(question, () => {
+              if (def.id === 'obj_sink_kitchen' && GameState.hasForestKey) {
+                AudioSystem.playKeyFound();
+                this.dialogModal.show({
+                  title: 'KUNCI HUTAN RAHASIA DITEMUKAN!',
+                  avatarIcon: 'key',
+                  message: 'Hebat! Kamu berhasil menemukan Kunci Hutan Rahasia di wastafel dapur istana! Sekarang pergilah ke Penjaga Gerbang Hutan di sebelah selatan untuk membuka gerbang!',
+                  buttonText: 'Menuju Gerbang Hutan'
+                });
+              }
+            });
+          }
         });
         return;
       }

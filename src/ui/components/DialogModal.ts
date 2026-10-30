@@ -92,7 +92,28 @@ export class DialogModal {
     const btn = this.container.querySelector('#dialog-btn-continue') as HTMLButtonElement;
 
     if (avatarEl) {
-      avatarEl.innerHTML = icon(Icons.messageCircle(28, 28), '#f5a623');
+      let iconSvg = Icons.messageCircle(28, 28);
+      let iconColor = '#f5a623';
+      if (data.avatarIcon === 'key') {
+        iconSvg = Icons.key(28, 28);
+        iconColor = '#facc15';
+      } else if (data.avatarIcon === 'crown') {
+        iconSvg = Icons.crown(28, 28);
+        iconColor = '#fbbf24';
+      } else if (data.avatarIcon === 'lock') {
+        iconSvg = Icons.lock(28, 28);
+        iconColor = '#ef4444';
+      } else if (data.avatarIcon === 'sword') {
+        iconSvg = Icons.sword(28, 28);
+        iconColor = '#f87171';
+      } else if (data.avatarIcon === 'heal' || data.avatarIcon === 'fountain') {
+        iconSvg = Icons.droplet(28, 28);
+        iconColor = '#38bdf8';
+      } else if (data.avatarIcon === 'search') {
+        iconSvg = Icons.search(28, 28);
+        iconColor = '#38bdf8';
+      }
+      avatarEl.innerHTML = icon(iconSvg, iconColor);
     }
     if (titleEl) titleEl.textContent = data.title;
     if (msgEl) msgEl.textContent = data.message;

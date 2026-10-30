@@ -177,6 +177,58 @@ class AudioSystemManager {
     osc.stop(ctx.currentTime + 0.08);
   }
 
+  public playKeyFound(): void {
+    if (this.isMuted) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    // Upward treasure/key fanfare chime: D5 -> F#5 -> A5 -> D6 -> F#6 -> A6
+    const notes = [
+      { f: 587.33, d: 0.09 },
+      { f: 739.99, d: 0.09 },
+      { f: 880.00, d: 0.09 },
+      { f: 1174.66, d: 0.12 },
+      { f: 1479.98, d: 0.14 },
+      { f: 1760.00, d: 0.50 }
+    ];
+
+    let t = ctx.currentTime;
+    notes.forEach((item, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = idx === notes.length - 1 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(item.f, t);
+
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + item.d + 0.04);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + item.d + 0.05);
+
+      // High shimmer sparkle overtone on the final sustained note
+      if (idx === notes.length - 1) {
+        const shimmer = ctx.createOscillator();
+        const sGain = ctx.createGain();
+        shimmer.type = 'sine';
+        shimmer.frequency.setValueAtTime(item.f * 2, t);
+        sGain.gain.setValueAtTime(0, t);
+        sGain.gain.linearRampToValueAtTime(0.15, t + 0.03);
+        sGain.gain.exponentialRampToValueAtTime(0.001, t + item.d);
+        shimmer.connect(sGain);
+        sGain.connect(ctx.destination);
+        shimmer.start(t);
+        shimmer.stop(t + item.d + 0.05);
+      }
+
+      t += item.d * 0.85;
+    });
+  }
+
   public playCrownFound(): void {
     if (this.isMuted) return;
     const ctx = this.initContext();

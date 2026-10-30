@@ -9,6 +9,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   public isAttacking: boolean = false;
   public isInvulnerable: boolean = false;
   private attackHitbox: Phaser.GameObjects.Rectangle | null = null;
+  private currentSlash: Phaser.GameObjects.Sprite | null = null;
   private attackStartTime: number = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: {
@@ -64,11 +65,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           try { this.attackHitbox.destroy(); } catch { /* ignore */ }
           this.attackHitbox = null;
         }
+        if (this.currentSlash) {
+          try { this.currentSlash.destroy(); } catch { /* ignore */ }
+          this.currentSlash = null;
+        }
         this.isAttacking = false;
       }
     }
 
-    if (!canMove || this.isAttacking) {
+    if (!canMove) {
       this.setVelocity(0, 0);
       return { attackTriggered, interactTriggered };
     }
@@ -140,6 +145,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setAngle(0);
     }
 
+    // Keep active attack hitbox and slash aligned with player as player moves
+    if (this.isAttacking) {
+      let ox = 0;
+      let oy = 0;
+      switch (this.facing) {
+        case 'up': oy = -24; break;
+        case 'down': oy = 24; break;
+        case 'left': ox = -24; break;
+        case 'right': ox = 24; break;
+      }
+      if (this.attackHitbox) {
+        this.attackHitbox.setPosition(this.x + ox, this.y + oy);
+      }
+      if (this.currentSlash && this.currentSlash.active) {
+        this.currentSlash.setPosition(this.x + ox, this.y + oy);
+      }
+    }
+
     // Attack triggers (Space or touch)
     if (
       Phaser.Input.Keyboard.JustDown(this.wasdKeys.space) ||
@@ -166,7 +189,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.isAttacking) return;
     this.isAttacking = true;
     this.attackStartTime = this.scene.time.now;
-    this.setVelocity(0, 0);
 
     AudioSystem.playSwing();
 
@@ -198,6 +220,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const slash = this.scene.add.sprite(this.x + offsetX, this.y + offsetY, 'fx_slash');
     slash.setAngle(angle);
     slash.setDepth(this.depth + 1);
+    this.currentSlash = slash;
 
     this.scene.tweens.add({
       targets: slash,
@@ -205,7 +228,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       scaleY: 1.4,
       alpha: 0,
       duration: 180,
-      onComplete: () => slash.destroy()
+      onComplete: () => {
+        if (this.currentSlash === slash) {
+          this.currentSlash = null;
+        }
+        slash.destroy();
+      }
     });
 
     // Create attack collision sensor
@@ -220,6 +248,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.attackHitbox.destroy();
         this.attackHitbox = null;
       }
+      this.currentSlash = null;
       this.isAttacking = false;
     });
   }

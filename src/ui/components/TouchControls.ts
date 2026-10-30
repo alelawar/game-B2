@@ -22,6 +22,7 @@ export class TouchControls {
     vector: { x: 0, y: 0 }
   };
 
+  private joystickZone!: HTMLElement;
   private joystickBase!: HTMLElement;
   private joystickKnob!: HTMLElement;
   private notchUp!: HTMLElement;
@@ -34,6 +35,10 @@ export class TouchControls {
   private baseCenterX = 0;
   private baseCenterY = 0;
   private maxRadius = 38;
+
+  // Window event listeners references for clean teardown
+  private onWindowPointerMoveHandler?: (e: PointerEvent) => void;
+  private onWindowPointerUpHandler?: (e: PointerEvent) => void;
 
   // Desktop keyboard tracking
   private activeKeys = new Set<string>();
@@ -83,6 +88,7 @@ export class TouchControls {
   }
 
   private cacheElements(): void {
+    this.joystickZone = this.container.querySelector('#joystick-zone') as HTMLElement;
     this.joystickBase = this.container.querySelector('#joystick-base') as HTMLElement;
     this.joystickKnob = this.container.querySelector('#joystick-knob') as HTMLElement;
     this.notchUp = this.container.querySelector('#notch-up') as HTMLElement;
@@ -93,21 +99,20 @@ export class TouchControls {
 
   private bindJoystickEvents(): void {
     const onPointerDown = (e: PointerEvent) => {
-      // Don't hijack right-click
+      // Don't hijack right-click or secondary mouse clicks
       if (e.button !== 0 && e.pointerType === 'mouse') return;
 
+      // If already tracking a finger on joystick, ignore other fingers touching the zone
+      if (this.isPointerDragging) return;
+
       e.preventDefault();
+      e.stopPropagation();
+
       this.isPointerDragging = true;
       this.activePointerId = e.pointerId;
 
       this.joystickBase.classList.add('active-touch');
       this.joystickKnob.classList.add('dragging');
-
-      try {
-        this.joystickBase.setPointerCapture(e.pointerId);
-      } catch {
-        // Fallback if pointer capture fails
-      }
 
       const rect = this.joystickBase.getBoundingClientRect();
       this.baseCenterX = rect.left + rect.width / 2;
@@ -117,23 +122,28 @@ export class TouchControls {
       this.updateJoystickPosition(e.clientX, e.clientY);
     };
 
-    const onPointerMove = (e: PointerEvent) => {
+    this.onWindowPointerMoveHandler = (e: PointerEvent) => {
+      // Strictly track ONLY the joystick's pointer ID to support flawless multi-touch
       if (!this.isPointerDragging || e.pointerId !== this.activePointerId) return;
       e.preventDefault();
       this.updateJoystickPosition(e.clientX, e.clientY);
     };
 
-    const onPointerEnd = (e: PointerEvent) => {
-      if (e.pointerId !== this.activePointerId && this.activePointerId !== null) return;
+    this.onWindowPointerUpHandler = (e: PointerEvent) => {
+      // Strictly release ONLY if the joystick's specific pointer was released
+      // Other fingers (e.g. attacking or interacting) will NOT cancel the joystick!
+      if (!this.isPointerDragging || e.pointerId !== this.activePointerId) return;
       this.releaseJoystick();
     };
 
+    // Attach start listener to both joystick base and the surrounding zone
     this.joystickBase.addEventListener('pointerdown', onPointerDown);
-    this.joystickBase.addEventListener('pointermove', onPointerMove);
-    this.joystickBase.addEventListener('pointerup', onPointerEnd);
-    this.joystickBase.addEventListener('pointercancel', onPointerEnd);
-    this.joystickBase.addEventListener('lostpointercapture', () => this.releaseJoystick());
-    window.addEventListener('pointerup', () => this.releaseJoystick());
+    this.joystickZone.addEventListener('pointerdown', onPointerDown);
+
+    // Global tracking on window for smooth movement everywhere on the screen
+    window.addEventListener('pointermove', this.onWindowPointerMoveHandler, { passive: false });
+    window.addEventListener('pointerup', this.onWindowPointerUpHandler);
+    window.addEventListener('pointercancel', this.onWindowPointerUpHandler);
     window.addEventListener('blur', () => this.reset());
   }
 
@@ -205,17 +215,28 @@ export class TouchControls {
       const el = this.container.querySelector(`#${id}`) as HTMLElement;
       if (!el) return;
 
-      const triggerDown = (e: Event) => {
+      let btnPointerId: number | null = null;
+
+      const triggerDown = (e: PointerEvent) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
         e.preventDefault();
+        e.stopPropagation();
+
+        btnPointerId = e.pointerId;
         this.state[key] = true;
         el.classList.add('pressed');
+
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           try { navigator.vibrate(12); } catch { /* ignore */ }
         }
       };
 
-      const triggerUp = (e: Event) => {
+      const triggerUp = (e: PointerEvent) => {
+        if (btnPointerId !== null && e.pointerId !== btnPointerId) return;
         e.preventDefault();
+        e.stopPropagation();
+
+        btnPointerId = null;
         this.state[key] = false;
         el.classList.remove('pressed');
       };
@@ -223,7 +244,11 @@ export class TouchControls {
       el.addEventListener('pointerdown', triggerDown);
       el.addEventListener('pointerup', triggerUp);
       el.addEventListener('pointercancel', triggerUp);
-      el.addEventListener('pointerleave', triggerUp);
+      el.addEventListener('pointerleave', (e: PointerEvent) => {
+        if (btnPointerId !== null && e.pointerId === btnPointerId) {
+          triggerUp(e);
+        }
+      });
     };
 
     bindBtn('touch-btn-attack', 'attack');
@@ -379,6 +404,13 @@ export class TouchControls {
   }
 
   public destroy(): void {
+    if (this.onWindowPointerMoveHandler) {
+      window.removeEventListener('pointermove', this.onWindowPointerMoveHandler);
+    }
+    if (this.onWindowPointerUpHandler) {
+      window.removeEventListener('pointerup', this.onWindowPointerUpHandler);
+      window.removeEventListener('pointercancel', this.onWindowPointerUpHandler);
+    }
     if (this.keydownHandler) window.removeEventListener('keydown', this.keydownHandler);
     if (this.keyupHandler) window.removeEventListener('keyup', this.keyupHandler);
     this.container.remove();
