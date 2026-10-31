@@ -13,6 +13,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   private isDead: boolean = false;
   private isHurt: boolean = false;
+  private hurtStartTime: number = 0;
   private aggroRange: number = 140;
   private moveSpeed: number = 50;
 
@@ -29,7 +30,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private chargeTargetY: number = 0;
   private circleAngle: number = 0;
   private attackCooldown: number = 0;
-  private readonly ATTACK_COOLDOWN_MS = 1200;
 
   constructor(scene: Phaser.Scene, def: EnemyDef) {
     const pixelX = def.x * 32 + 16;
@@ -85,9 +85,19 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   public updateEnemy(player: Player, delta: number): void {
-    if (this.isDead || this.isHurt) {
-      this.updateHpBar();
+    if (this.isDead || !this.active || !this.body) {
       return;
+    }
+
+    // Safety watchdog for hurt state so enemy never freezes in hurt state
+    if (this.isHurt) {
+      if (this.scene && this.scene.time.now - this.hurtStartTime > 300) {
+        this.isHurt = false;
+        this.clearTint();
+      } else {
+        this.updateHpBar();
+        return;
+      }
     }
 
     // Update attack cooldown
@@ -104,7 +114,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.isCharging = false;
         // Brief visual flash on pattern switch
         this.setTint(0xffff00);
-        this.scene.time.delayedCall(120, () => this.clearTint());
+        this.scene.time.delayedCall(120, () => {
+          if (!this.active || this.isDead) return;
+          this.clearTint();
+        });
       }
 
       this.executePattern(player, dist, delta);
@@ -114,7 +127,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.updateHpBar();
-    this.flipX = this.body!.velocity.x > 0;
+    if (this.body) {
+      this.flipX = this.body.velocity.x > 0;
+    }
   }
 
   private executePattern(player: Player, dist: number, delta: number): void {
@@ -142,14 +157,18 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.chargeTargetY = player.y;
             const chargeAngle = Phaser.Math.Angle.Between(this.x, this.y, this.chargeTargetX, this.chargeTargetY);
             this.setVelocity(Math.cos(chargeAngle) * this.moveSpeed * 3.2, Math.sin(chargeAngle) * this.moveSpeed * 3.2);
-            // Visual: turn red briefly when charging
+            // Visual: turn orange briefly when charging
             this.setTint(0xff6600);
-            this.scene.time.delayedCall(350, () => { this.clearTint(); this.isCharging = false; });
+            this.scene.time.delayedCall(350, () => {
+              if (!this.active || this.isDead) return;
+              this.clearTint();
+              this.isCharging = false;
+            });
           }
         }
         break;
 
-      case 'circle':
+      case 'circle': {
         // Orbit around player at medium distance
         this.circleAngle += delta * 0.0022;
         const orbitRadius = 55;
@@ -163,8 +182,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
           this.setVelocity(0, 0);
         }
         break;
+      }
 
-      case 'lunge':
+      case 'lunge': {
         // Zigzag approach: alternate left/right offset
         const zigzagOffset = Math.sin(this.patternTimer * 0.006) * 40;
         const perp = angle + Math.PI / 2;
@@ -176,14 +196,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
           this.setVelocity(0, 0);
         }
         break;
+      }
     }
   }
 
   private updateHpBar(): void {
-    if (!this.active) return;
+    if (this.isDead || !this.active || !this.hpBarBg?.active || !this.hpBarFill?.active) return;
+
     const barW = this.enemyDef.type === 'boss' ? 36 : 24;
     const ratio = Math.max(0, this.currentHealth / this.maxHealth);
-    const fillW = barW * ratio;
+    const fillW = Math.max(0.1, barW * ratio);
 
     this.hpBarBg.setPosition(this.x, this.y - 18);
     this.hpBarFill.setPosition(this.x - barW / 2 + fillW / 2, this.y - 18);
@@ -196,9 +218,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   public takeDamage(fromX: number, fromY: number): void {
-    if (this.isDead || this.isHurt) return;
+    if (this.isDead || this.isHurt || !this.active || !this.scene) return;
 
     this.isHurt = true;
+    this.hurtStartTime = this.scene.time.now;
     this.currentHealth -= 1;
     AudioSystem.playHit();
 
@@ -220,28 +243,36 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       y: dmgText.y - 18,
       alpha: 0,
       duration: 500,
-      onComplete: () => dmgText.destroy()
+      onComplete: () => {
+        if (dmgText.active) dmgText.destroy();
+      }
     });
+
+    if (this.currentHealth <= 0) {
+      this.defeat();
+      return;
+    }
 
     // Flash white → red → clear
     this.setTint(0xffffff);
-    this.scene.time.delayedCall(60, () => this.setTint(0xff3333));
+    this.scene.time.delayedCall(60, () => {
+      if (!this.active || this.isDead) return;
+      this.setTint(0xff3333);
+    });
     this.scene.time.delayedCall(180, () => {
+      if (!this.active || this.isDead) return;
       this.clearTint();
       this.isHurt = false;
     });
 
     this.updateHpBar();
-
-    if (this.currentHealth <= 0) {
-      this.defeat();
-    }
   }
 
   private defeat(): void {
+    if (this.isDead) return;
     this.isDead = true;
     this.setVelocity(0, 0);
-    const body = this.body as Phaser.Physics.Arcade.Body;
+    const body = this.body as Phaser.Physics.Arcade.Body | null;
     if (body) body.enable = false;
 
     GameState.monstersDefeated += 1;
@@ -249,9 +280,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       GameState.defeatBoss();
     }
 
-    // Hide HP bar
-    this.hpBarBg.destroy();
-    this.hpBarFill.destroy();
+    // Hide & destroy HP bar safely
+    try { this.hpBarBg?.destroy(); } catch { /* ignore */ }
+    try { this.hpBarFill?.destroy(); } catch { /* ignore */ }
+
+    if (!this.scene) return;
+
+    // Stop idle breathing tween so it doesn't conflict with shrink tween
+    this.scene.tweens.killTweensOf(this);
 
     // Poof particles (colored squares, no emoji)
     const colors = [0x22c55e, 0x60a5fa, 0xf59e0b, 0xffffff];
@@ -269,7 +305,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         angle: Phaser.Math.Between(-180, 180),
         duration: 400 + Math.random() * 200,
         ease: 'Power2',
-        onComplete: () => particle.destroy()
+        onComplete: () => {
+          if (particle.active) particle.destroy();
+        }
       });
     }
 
@@ -293,7 +331,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         y: bossDefeated.y - 30,
         alpha: 0,
         duration: 1200,
-        onComplete: () => bossDefeated.destroy()
+        onComplete: () => {
+          if (bossDefeated.active) bossDefeated.destroy();
+        }
       });
     }
 
@@ -304,11 +344,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       scaleY: 0,
       alpha: 0,
       duration: 280,
-      onComplete: () => { this.destroy(); }
+      onComplete: () => {
+        if (this.active) this.destroy();
+      }
     });
   }
 
   private spawnHealDrop(): void {
+    if (!this.scene) return;
     const texKey = 'item_heal_drop';
     if (!this.scene.textures.exists(texKey)) {
       const { canvas, ctx } = this.makeCanvas(12, 12);
@@ -337,12 +380,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // Auto-destroy after 8 seconds
     this.scene.time.delayedCall(8000, () => {
-      if (drop.active) {
+      if (drop && drop.active && this.scene) {
         this.scene.tweens.add({
           targets: drop,
           alpha: 0,
           duration: 500,
-          onComplete: () => drop.destroy()
+          onComplete: () => {
+            if (drop.active) drop.destroy();
+          }
         });
       }
     });
@@ -371,7 +416,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   public destroy(fromScene?: boolean): void {
-    // Clean up HP bar if not already destroyed
+    if (this.scene && this.scene.tweens) {
+      try { this.scene.tweens.killTweensOf(this); } catch { /* */ }
+    }
     try { this.hpBarBg?.destroy(); } catch { /* */ }
     try { this.hpBarFill?.destroy(); } catch { /* */ }
     super.destroy(fromScene);

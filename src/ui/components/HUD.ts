@@ -16,6 +16,12 @@ export class HUD {
   private controlsHint: HTMLElement;
   private questLogOpen: boolean = false;
 
+  // Cached state to avoid 60 FPS DOM manipulation and layout thrashing
+  private lastPromptText: string = "";
+  private isBubbleVisible: boolean = false;
+  private cachedCanvas: HTMLCanvasElement | null = null;
+  private currentOnInteract?: () => void;
+
   constructor(
     onRestartCallback: () => void,
     onReturnToBaseCallback: () => void,
@@ -28,6 +34,10 @@ export class HUD {
 
     this.interactionBubble = document.createElement("div");
     this.interactionBubble.id = "interaction-bubble";
+    this.interactionBubble.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.currentOnInteract) this.currentOnInteract();
+    });
 
     this.questLogPanel = document.createElement("div");
     this.questLogPanel.id = "quest-log-panel";
@@ -379,35 +389,45 @@ export class HUD {
     text: string = "Tekan [E]",
     onInteract?: () => void
   ): void {
-    const isMobile = window.innerWidth <= 820 || 'ontouchstart' in window;
+    this.currentOnInteract = onInteract;
+
+    const isMobile = window.innerWidth <= 820 || "ontouchstart" in window;
     let displayText = text;
     if (isMobile) {
-      const clean = text.replace(/Tekan \[E\]\s*(untuk\s*)?/gi, '').trim();
-      displayText = clean ? `Sentuh untuk ${clean}` : 'Sentuh untuk Bicara';
+      const clean = text.replace(/Tekan \[E\]\s*(untuk\s*)?/gi, "").trim();
+      displayText = clean ? `Sentuh untuk ${clean}` : "Sentuh untuk Bicara";
     }
 
-    this.interactionBubble.innerHTML = `${icon(Icons.messageCircle(12, 12))} ${displayText}`;
+    // Only rebuild innerHTML when the text actually changes!
+    if (this.lastPromptText !== displayText) {
+      this.lastPromptText = displayText;
+      this.interactionBubble.innerHTML = `${icon(Icons.messageCircle(12, 12))} ${displayText}`;
+    }
 
-    const canvas = document.querySelector('#game-canvas-container canvas') as HTMLCanvasElement;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      const realX = rect.left + (x / 800) * rect.width;
-      const realY = rect.top + (y / 600) * rect.height;
+    if (!this.cachedCanvas || !this.cachedCanvas.isConnected) {
+      this.cachedCanvas = document.querySelector("#game-canvas-container canvas") as HTMLCanvasElement | null;
+    }
+
+    if (this.cachedCanvas) {
+      const rect = this.cachedCanvas.getBoundingClientRect();
+      const realX = Math.round(rect.left + (x / 800) * rect.width);
+      const realY = Math.round(rect.top + (y / 600) * rect.height);
       this.interactionBubble.style.left = `${realX}px`;
       this.interactionBubble.style.top = `${realY}px`;
     } else {
-      this.interactionBubble.style.left = `${x}px`;
-      this.interactionBubble.style.top = `${y}px`;
+      this.interactionBubble.style.left = `${Math.round(x)}px`;
+      this.interactionBubble.style.top = `${Math.round(y)}px`;
     }
 
-    this.interactionBubble.style.display = "flex";
-    this.interactionBubble.onclick = (e) => {
-      e.stopPropagation();
-      if (onInteract) onInteract();
-    };
+    if (!this.isBubbleVisible) {
+      this.isBubbleVisible = true;
+      this.interactionBubble.style.display = "flex";
+    }
   }
 
   public hideInteractionPrompt(): void {
+    if (!this.isBubbleVisible) return;
+    this.isBubbleVisible = false;
     this.interactionBubble.style.display = "none";
   }
 
@@ -417,5 +437,6 @@ export class HUD {
     this.interactionBubble.remove();
     this.questLogPanel.remove();
     this.minimapContainer.remove();
+    this.controlsHint.remove();
   }
 }

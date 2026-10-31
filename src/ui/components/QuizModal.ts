@@ -9,6 +9,7 @@ export class QuizModal {
   private onFinishCallback?: () => void;
   public isOpen: boolean = false;
   private answeredCurrent: boolean = false;
+  private openTimestamp: number = 0;
 
   constructor() {
     this.container = document.createElement('div');
@@ -53,20 +54,31 @@ export class QuizModal {
     `;
   }
 
+  private triggerFinish(): void {
+    const cb = this.onFinishCallback;
+    this.onFinishCallback = undefined;
+    this.close();
+    if (cb) cb();
+  }
+
   private bindEvents(): void {
     const continueBtn = this.container.querySelector('#quiz-btn-continue') as HTMLButtonElement;
-    continueBtn.addEventListener('click', () => {
-      this.close();
-      if (this.onFinishCallback) this.onFinishCallback();
+    continueBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.triggerFinish();
     });
 
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen) return;
 
+      if (Date.now() - this.openTimestamp < 180) {
+        return;
+      }
+
       if (e.key === 'Escape') {
         e.preventDefault();
-        this.close();
-        if (this.onFinishCallback) this.onFinishCallback();
+        e.stopImmediatePropagation();
+        this.triggerFinish();
         return;
       }
 
@@ -77,8 +89,8 @@ export class QuizModal {
       } else {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'e' || e.key === 'E') {
           e.preventDefault();
-          this.close();
-          if (this.onFinishCallback) this.onFinishCallback();
+          e.stopImmediatePropagation();
+          this.triggerFinish();
         }
       }
     });
@@ -88,6 +100,7 @@ export class QuizModal {
     this.currentQuestion = question;
     this.onFinishCallback = onFinish;
     this.isOpen = true;
+    this.openTimestamp = Date.now();
     this.answeredCurrent = false;
 
     const topicEl = this.container.querySelector('#quiz-topic') as HTMLElement;

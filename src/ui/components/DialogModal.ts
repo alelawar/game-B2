@@ -47,36 +47,34 @@ export class DialogModal {
     `;
   }
 
+  private triggerContinue(): void {
+    const cb = this.onContinueCallback;
+    this.onContinueCallback = undefined;
+    this.close();
+    if (cb) {
+      cb();
+    }
+  }
+
   private bindEvents(): void {
     const btn = this.container.querySelector('#dialog-btn-continue') as HTMLButtonElement;
-    btn.addEventListener('click', () => {
-      this.close();
-      if (this.onContinueCallback) {
-        this.onContinueCallback();
-      }
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.triggerContinue();
     });
 
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen) return;
-
-      // Allow Escape to dismiss immediately
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        this.close();
-        return;
-      }
 
       // Ignore input within 180ms of opening to avoid instant skip from the interaction keypress
       if (Date.now() - this.openTimestamp < 180) {
         return;
       }
 
-      if (e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') {
         e.preventDefault();
-        this.close();
-        if (this.onContinueCallback) {
-          this.onContinueCallback();
-        }
+        e.stopImmediatePropagation();
+        this.triggerContinue();
       }
     });
   }

@@ -35,6 +35,7 @@ export class TouchControls {
   private baseCenterX = 0;
   private baseCenterY = 0;
   private maxRadius = 38;
+  private lastInteractKey: string = '';
 
   // Window event listeners references for clean teardown
   private onWindowPointerMoveHandler?: (e: PointerEvent) => void;
@@ -368,6 +369,10 @@ export class TouchControls {
   }
 
   public updateInteractTarget(target: { type: 'npc' | 'object' | 'portal'; label: string } | null): void {
+    const nextKey = target ? `${target.type}:${target.label}` : '';
+    if (nextKey === this.lastInteractKey) return;
+    this.lastInteractKey = nextKey;
+
     const btn = this.container.querySelector('#touch-btn-interact') as HTMLElement;
     if (!btn) return;
 

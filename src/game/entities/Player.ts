@@ -11,6 +11,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private attackHitbox: Phaser.GameObjects.Rectangle | null = null;
   private currentSlash: Phaser.GameObjects.Sprite | null = null;
   private attackStartTime: number = 0;
+  private invulnerableStartTime: number = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: {
     w: Phaser.Input.Keyboard.Key;
@@ -58,6 +59,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     let attackTriggered = false;
     let interactTriggered = false;
 
+    if (!this.active || !this.body || !this.scene) {
+      return { attackTriggered, interactTriggered };
+    }
+
     // Safety watchdog: if isAttacking exceeds 250ms or hitbox is gone, force release attack lock
     if (this.isAttacking) {
       if (!this.attackHitbox || (this.scene.time.now - this.attackStartTime > 250)) {
@@ -71,6 +76,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
         this.isAttacking = false;
       }
+    }
+
+    // Safety watchdog: if isInvulnerable exceeds 1300ms, force release invulnerability lock
+    if (this.isInvulnerable && (this.scene.time.now - this.invulnerableStartTime > 1300)) {
+      this.isInvulnerable = false;
+      this.alpha = 1;
     }
 
     if (!canMove) {
@@ -155,7 +166,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         case 'left': ox = -24; break;
         case 'right': ox = 24; break;
       }
-      if (this.attackHitbox) {
+      if (this.attackHitbox && this.attackHitbox.active) {
         this.attackHitbox.setPosition(this.x + ox, this.y + oy);
       }
       if (this.currentSlash && this.currentSlash.active) {
@@ -165,7 +176,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Attack triggers (Space or touch)
     if (
-      Phaser.Input.Keyboard.JustDown(this.wasdKeys.space) ||
+      (this.wasdKeys && Phaser.Input.Keyboard.JustDown(this.wasdKeys.space)) ||
       (this.virtualInput && this.virtualInput.attack)
     ) {
       if (this.virtualInput) this.virtualInput.attack = false;
@@ -175,7 +186,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Interact triggers (E or touch)
     if (
-      Phaser.Input.Keyboard.JustDown(this.wasdKeys.e) ||
+      (this.wasdKeys && Phaser.Input.Keyboard.JustDown(this.wasdKeys.e)) ||
       (this.virtualInput && this.virtualInput.interact)
     ) {
       if (this.virtualInput) this.virtualInput.interact = false;
@@ -186,7 +197,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   public executeAttack(): void {
-    if (this.isAttacking) return;
+    if (this.isAttacking || !this.active || !this.scene) return;
     this.isAttacking = true;
     this.attackStartTime = this.scene.time.now;
 
@@ -232,20 +243,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.currentSlash === slash) {
           this.currentSlash = null;
         }
-        slash.destroy();
+        if (slash.active) slash.destroy();
       }
     });
 
     // Create attack collision sensor
     this.attackHitbox = this.scene.add.rectangle(this.x + offsetX, this.y + offsetY, 28, 28);
     this.scene.physics.add.existing(this.attackHitbox);
-    const body = this.attackHitbox.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false);
+    const body = this.attackHitbox.body as Phaser.Physics.Arcade.Body | null;
+    if (body) body.setAllowGravity(false);
 
     // End attack after 200ms
     this.scene.time.delayedCall(200, () => {
       if (this.attackHitbox) {
-        this.attackHitbox.destroy();
+        try { this.attackHitbox.destroy(); } catch { /* ignore */ }
         this.attackHitbox = null;
       }
       this.currentSlash = null;
@@ -258,9 +269,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   public takeDamage(fromX: number, fromY: number): boolean {
-    if (this.isInvulnerable) return false;
+    if (this.isInvulnerable || !this.active || !this.scene) return false;
 
     this.isInvulnerable = true;
+    this.invulnerableStartTime = this.scene.time.now;
     AudioSystem.playPlayerHurt();
 
     const isDead = GameState.damagePlayer(1);
@@ -277,11 +289,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       yoyo: true,
       repeat: 5,
       onComplete: () => {
-        this.alpha = 1;
+        if (this.active) {
+          this.alpha = 1;
+        }
         this.isInvulnerable = false;
       }
     });
 
     return isDead;
+  }
+
+  public destroy(fromScene?: boolean): void {
+    if (this.attackHitbox) {
+      try { this.attackHitbox.destroy(); } catch { /* ignore */ }
+      this.attackHitbox = null;
+    }
+    if (this.currentSlash) {
+      try { this.currentSlash.destroy(); } catch { /* ignore */ }
+      this.currentSlash = null;
+    }
+    super.destroy(fromScene);
   }
 }

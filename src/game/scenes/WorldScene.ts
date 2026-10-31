@@ -51,6 +51,7 @@ export class WorldScene extends Phaser.Scene {
   // Minimap update throttle
   private minimapTick: number = 0;
   private readonly MINIMAP_UPDATE_MS = 200;
+  private transitionFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super('WorldScene');
@@ -63,10 +64,16 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(data?: { startTileX?: number; startTileY?: number }): void {
+    if (this.transitionFallbackTimer !== null) {
+      clearTimeout(this.transitionFallbackTimer);
+      this.transitionFallbackTimer = null;
+    }
+
     const areaData = AREA_MAPS[this.currentAreaKey];
     this.portals = areaData.portals;
     this.isTransitioning = false;
     this.portalCooldownTimer = 500;
+    this.closestTarget = null;
     this.npcs = [];
     this.interactables = [];
     this.enemies = [];
@@ -359,9 +366,9 @@ export class WorldScene extends Phaser.Scene {
       this.portalCooldownTimer = Math.max(0, this.portalCooldownTimer - delta);
     }
 
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || !this.player || !this.player.active || !this.player.body) return;
 
-    this.isModalOpen = this.dialogModal?.isOpen || this.quizModal?.isOpen || this.victoryModal?.isOpen;
+    this.isModalOpen = Boolean(this.dialogModal?.isOpen || this.quizModal?.isOpen || this.victoryModal?.isOpen);
     const canMove = !this.isModalOpen;
 
     const { attackTriggered, interactTriggered } = this.player.updatePlayer(canMove);
@@ -385,7 +392,7 @@ export class WorldScene extends Phaser.Scene {
       const tileX = Math.floor(this.player.x / 32);
       const tileY = Math.floor(this.player.y / 32);
       const activeEnemies = this.enemies
-        .filter(e => !e.getIsDead())
+        .filter(e => e && e.active && !e.getIsDead())
         .map(e => ({ x: e.x, y: e.y, isBoss: e.enemyDef.type === 'boss' }));
       this.hud?.updateMinimap(this.currentAreaKey, tileX, tileY, activeEnemies);
     }
@@ -397,12 +404,12 @@ export class WorldScene extends Phaser.Scene {
     this.updateEnemyTargeting();
   }
 
-  private updateEnemiesCombat(attackTriggered: boolean, delta: number): void {
+  private updateEnemiesCombat(_attackTriggered: boolean, delta: number): void {
     const hitbox = this.player.getAttackHitbox();
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
-      if (enemy.getIsDead()) {
+      if (!enemy || !enemy.active || enemy.getIsDead()) {
         this.enemies.splice(i, 1);
         continue;
       }
@@ -410,18 +417,19 @@ export class WorldScene extends Phaser.Scene {
       enemy.updateEnemy(this.player, delta);
 
       // Player sword → enemy
-      if (hitbox && !enemy.getIsDead()) {
+      if (hitbox && hitbox.active && enemy.active && !enemy.getIsDead()) {
         if (this.physics.overlap(hitbox, enemy)) {
           enemy.takeDamage(this.player.x, this.player.y);
         }
       }
 
       // Enemy touches player
-      if (!enemy.getIsDead() && !this.player.isInvulnerable) {
+      if (enemy.active && !enemy.getIsDead() && !this.player.isInvulnerable) {
         if (this.physics.overlap(this.player, enemy)) {
           const isDead = this.player.takeDamage(enemy.x, enemy.y);
           if (isDead) {
             this.handlePlayerDefeated();
+            break;
           }
         }
       }
@@ -431,7 +439,7 @@ export class WorldScene extends Phaser.Scene {
   private checkHealDropPickups(): void {
     for (let i = this.healDrops.length - 1; i >= 0; i--) {
       const drop = this.healDrops[i];
-      if (!drop.active) {
+      if (!drop || !drop.active) {
         this.healDrops.splice(i, 1);
         continue;
       }
@@ -454,7 +462,9 @@ export class WorldScene extends Phaser.Scene {
           y: healText.y - 20,
           alpha: 0,
           duration: 600,
-          onComplete: () => healText.destroy()
+          onComplete: () => {
+            if (healText.active) healText.destroy();
+          }
         });
 
         drop.destroy();
@@ -1035,12 +1045,19 @@ export class WorldScene extends Phaser.Scene {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
     this.clearDirectionArrows();
+    this.hud?.hideInteractionPrompt();
+    this.touchControls?.updateInteractTarget(null);
     AudioSystem.playInteract();
 
     // Close any open modals so input is never blocked in the next scene
     this.dialogModal?.close();
     this.quizModal?.close();
     this.victoryModal?.close();
+
+    if (this.transitionFallbackTimer !== null) {
+      clearTimeout(this.transitionFallbackTimer);
+      this.transitionFallbackTimer = null;
+    }
 
     // Reset any running camera fade to prevent Phaser from ignoring fadeOut
     this.cameras.main.resetFX();
@@ -1049,6 +1066,10 @@ export class WorldScene extends Phaser.Scene {
     const doRestart = () => {
       if (restarted) return;
       restarted = true;
+      if (this.transitionFallbackTimer !== null) {
+        clearTimeout(this.transitionFallbackTimer);
+        this.transitionFallbackTimer = null;
+      }
       this.scene.restart({
         areaKey: targetArea,
         startTileX: targetTileX,
@@ -1057,10 +1078,9 @@ export class WorldScene extends Phaser.Scene {
     };
 
     // Safety fallback timeout: guarantees transition even if Phaser camera event drops
-    const fallbackTimer = setTimeout(doRestart, 320);
+    this.transitionFallbackTimer = setTimeout(doRestart, 320);
 
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      clearTimeout(fallbackTimer);
       doRestart();
     });
 
@@ -1068,10 +1088,17 @@ export class WorldScene extends Phaser.Scene {
   }
 
   public returnToBase(): void {
+    if (this.transitionFallbackTimer !== null) {
+      clearTimeout(this.transitionFallbackTimer);
+      this.transitionFallbackTimer = null;
+    }
+
     // Unconditionally force-release any stuck transition flag so Home is a reliable rescue hatch
     this.isTransitioning = false;
     this.portalCooldownTimer = 600;
     this.clearDirectionArrows();
+    this.hud?.hideInteractionPrompt();
+    this.touchControls?.updateInteractTarget(null);
     AudioSystem.playInteract();
 
     // Close all modals so canMove is always restored
@@ -1085,7 +1112,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // Reset player state to prevent stuck/glitched states
-    if (this.player) {
+    if (this.player && this.player.active) {
       this.player.isAttacking = false;
       this.player.isInvulnerable = false;
       this.player.setVelocity(0, 0);
@@ -1096,14 +1123,21 @@ export class WorldScene extends Phaser.Scene {
   }
 
   public restartGame(): void {
+    if (this.transitionFallbackTimer !== null) {
+      clearTimeout(this.transitionFallbackTimer);
+      this.transitionFallbackTimer = null;
+    }
+    this.isTransitioning = false;
     this.clearDirectionArrows();
+    this.hud?.hideInteractionPrompt();
+    this.touchControls?.updateInteractTarget(null);
     GameState.reset();
     this.dialogModal?.close();
     this.quizModal?.close();
     this.victoryModal?.close();
 
-    const regModal = (window as unknown as { registrationModal?: { show: () => void } }).registrationModal;
-    if (regModal) regModal.show();
+    const regModal = (window as unknown as { registrationModal?: { show?: () => void } }).registrationModal;
+    if (regModal && typeof regModal.show === 'function') regModal.show();
 
     this.scene.restart({
       areaKey: 'VILLAGE',
