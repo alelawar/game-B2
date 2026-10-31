@@ -106,7 +106,11 @@ export class QuizModal {
     feedbackEl.classList.remove('show');
     continueBtn.style.display = 'none';
 
-    const isAlreadyAnswered = GameState.isQuestionAnswered(question.id);
+    // Retrieve previous answer state for this question
+    const answerState = GameState.getQuestionAnswerState(question.id);
+    const isAlreadyAnswered = answerState?.answered ?? false;
+    const userSelectedOption = answerState?.selectedOption ?? -1;
+    const isUserCorrect = answerState?.correct ?? false;
 
     optionsContainer.innerHTML = '';
     const letters = ['A', 'B', 'C'];
@@ -114,24 +118,43 @@ export class QuizModal {
     question.options.forEach((optText, index) => {
       const btn = document.createElement('button');
       btn.className = 'quiz-option-btn';
-      btn.innerHTML = `
-        <span class="quiz-option-letter">${letters[index]}</span>
-        <span>${optText}</span>
-      `;
+
+      let tagHtml = '';
 
       if (isAlreadyAnswered) {
         btn.disabled = true;
-        if (index === question.correctIndex) btn.classList.add('correct');
+
+        if (index === userSelectedOption) {
+          // Highlight the user's actual chosen answer
+          btn.classList.add('user-selected');
+          if (isUserCorrect) {
+            btn.classList.add('correct');
+            tagHtml = `<span class="quiz-option-tag tag-correct">${icon(Icons.checkCircle(12, 12))} Jawaban Kamu</span>`;
+          } else {
+            btn.classList.add('wrong');
+            tagHtml = `<span class="quiz-option-tag tag-wrong">${icon(Icons.xCircle(12, 12))} Jawaban Kamu</span>`;
+          }
+        } else if (index === question.correctIndex && !isUserCorrect) {
+          // Show the correct answer as educational key reference
+          btn.classList.add('correct');
+          tagHtml = `<span class="quiz-option-tag tag-key">${icon(Icons.checkCircle(12, 12))} Kunci Benar</span>`;
+        }
       } else {
         btn.addEventListener('click', () => this.handleOptionSelect(index));
       }
+
+      btn.innerHTML = `
+        <span class="quiz-option-letter">${letters[index]}</span>
+        <span class="quiz-option-text" style="flex: 1; text-align: left;">${optText}</span>
+        ${tagHtml}
+      `;
 
       optionsContainer.appendChild(btn);
     });
 
     if (isAlreadyAnswered) {
       this.answeredCurrent = true;
-      this.showFeedbackUI(true, true);
+      this.showFeedbackUI(isUserCorrect, true);
       continueBtn.style.display = 'inline-flex';
     }
 
@@ -148,10 +171,19 @@ export class QuizModal {
     const optionButtons = this.container.querySelectorAll('.quiz-option-btn') as NodeListOf<HTMLButtonElement>;
     optionButtons.forEach((btn, idx) => {
       btn.disabled = true;
-      if (idx === this.currentQuestion!.correctIndex) {
+
+      if (idx === selectedIndex) {
+        btn.classList.add('user-selected');
+        if (isCorrect) {
+          btn.classList.add('correct');
+          btn.insertAdjacentHTML('beforeend', `<span class="quiz-option-tag tag-correct">${icon(Icons.checkCircle(12, 12))} Jawaban Kamu</span>`);
+        } else {
+          btn.classList.add('wrong');
+          btn.insertAdjacentHTML('beforeend', `<span class="quiz-option-tag tag-wrong">${icon(Icons.xCircle(12, 12))} Jawaban Kamu</span>`);
+        }
+      } else if (idx === this.currentQuestion!.correctIndex && !isCorrect) {
         btn.classList.add('correct');
-      } else if (idx === selectedIndex && !isCorrect) {
-        btn.classList.add('wrong');
+        btn.insertAdjacentHTML('beforeend', `<span class="quiz-option-tag tag-key">${icon(Icons.checkCircle(12, 12))} Kunci Benar</span>`);
       }
     });
 
@@ -179,9 +211,15 @@ export class QuizModal {
     feedbackEl.classList.add('show');
 
     if (isPreviouslyAnswered) {
-      feedbackEl.style.borderLeftColor = '#3b82f6';
-      titleEl.style.color = '#60a5fa';
-      titleEl.innerHTML = `${icon(Icons.info(16, 16), '#60a5fa')} Pertanyaan ini sudah pernah dijawab sebelumnya!`;
+      if (isCorrect) {
+        feedbackEl.style.borderLeftColor = '#22c55e';
+        titleEl.style.color = '#22c55e';
+        titleEl.innerHTML = `${icon(Icons.checkCircle(16, 16), '#22c55e')} Pertanyaan ini sudah kamu selesaikan dengan Benar! (+10 Poin)`;
+      } else {
+        feedbackEl.style.borderLeftColor = '#ef4444';
+        titleEl.style.color = '#f87171';
+        titleEl.innerHTML = `${icon(Icons.alertTriangle(16, 16), '#f87171')} Pertanyaan ini sudah pernah dijawab (Jawabanmu belum tepat)`;
+      }
     } else if (isCorrect) {
       feedbackEl.style.borderLeftColor = '#22c55e';
       titleEl.style.color = '#22c55e';

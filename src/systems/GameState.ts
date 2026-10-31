@@ -147,6 +147,10 @@ class GameStateManager {
     return this.answeredQuestions.get(questionId)?.answered ?? false;
   }
 
+  public getQuestionAnswerState(questionId: string): QuestionAnswerState | undefined {
+    return this.answeredQuestions.get(questionId);
+  }
+
   public getAnsweredCount(): number {
     let count = 0;
     for (const [, state] of this.answeredQuestions) {

@@ -728,6 +728,42 @@ body, html {
   color: #fff;
 }
 
+.quiz-option-btn.user-selected {
+  position: relative;
+  box-shadow: 0 0 0 2px #f5a623, 2px 2px 0px rgba(0,0,0,0.4) !important;
+}
+
+.quiz-option-tag {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  padding: 3px 6px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.quiz-option-tag.tag-correct {
+  background: rgba(34, 197, 94, 0.25);
+  border: 1px solid #22c55e;
+  color: #86efac;
+}
+
+.quiz-option-tag.tag-wrong {
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.quiz-option-tag.tag-key {
+  background: rgba(56, 189, 248, 0.25);
+  border: 1px solid #38bdf8;
+  color: #7dd3fc;
+}
+
 .quiz-feedback {
   background: #0f172a;
   border: 2px solid #1e293b;
